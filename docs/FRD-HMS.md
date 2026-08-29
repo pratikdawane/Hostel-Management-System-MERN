@@ -1,82 +1,93 @@
-# Functional Requirements Document — Hostel Management System
+# Functional Requirements — Hostel Management System
 
-**Status:** Living document
-**Last updated:** 2026-08-29
+**Status:** Living document (gets updated as the project evolves)
+**Last updated:** 2026-08-30
 
-Requirements here are stated at product-decision level (what the system must do and the rules
-that govern it). Implementation-ready detail (exact API routes, field lists, UI states) lives in
-the corresponding [`specs/`](./specs/) file once a module is scheduled for build.
+This document lists exactly what the system must do, one feature area at a time, in plain
+language. Once a feature area is scheduled to be built, it gets its own detailed write-up in
+[`specs/`](./specs/) with the exact routes, fields, and screen behavior.
 
-## FR-1 — Authentication & session management
-*Spec: [`specs/001-auth.md`](./specs/001-auth.md) · Status: Implemented*
+## Feature 1 — Login & Sessions
+*Details: [`specs/001-auth.md`](./specs/001-auth.md) · Status: Built*
 
-- FR-1.1 The system SHALL support exactly three roles: Admin, Manager, Resident.
-- FR-1.2 The first Admin account SHALL be created via a one-time bootstrap flow; the endpoint
-  SHALL refuse to create a second Admin this way once one exists.
-- FR-1.3 All non-bootstrap accounts SHALL be created by an Admin, never via public self-registration.
-- FR-1.4 Sessions SHALL use a short-lived access token + rotating refresh token, never a
-  long-lived token stored in browser `localStorage`.
-- FR-1.5 Changing a password SHALL invalidate that account's other active sessions immediately.
-- FR-1.6 Deactivating an account SHALL invalidate its sessions immediately, not on next expiry.
-- FR-1.7 An Admin SHALL NOT be able to deactivate their own account or the last remaining active Admin.
+1. There are exactly three kinds of accounts: Admin, Manager, Resident.
+2. The very first Admin account is created through a one-time setup step. That same setup step
+   will refuse to create a second Admin once one already exists.
+3. No one can sign themselves up after that first Admin exists — every new account must be
+   created by an Admin.
+4. Logging in gives you a short-lived pass plus a longer-lived, safely-stored renewal pass — never
+   a single long-lived pass saved in a place a malicious script could read.
+5. Changing your password immediately logs out every other device you were signed into.
+6. Turning an account off logs it out immediately — not "the next time its pass expires."
+7. An Admin can never turn off their own account, and can never turn off the very last active
+   Admin account (so the hostel can never end up with zero working Admins).
 
-## FR-2 — User management
-*Spec: [`specs/001-auth.md`](./specs/001-auth.md) · Status: Implemented*
+## Feature 2 — Managing accounts
+*Details: [`specs/001-auth.md`](./specs/001-auth.md) · Status: Built*
 
-- FR-2.1 Admin SHALL be able to create, list (filterable by role, paginated), and
-  activate/deactivate Manager/Resident/Admin accounts.
-- FR-2.2 Manager and Resident roles SHALL NOT have access to account-management endpoints.
+1. An Admin can create new accounts, see a list of all accounts (with search/paging), and turn
+   any account on or off.
+2. Manager and Resident accounts cannot see or use any of the account-management screens or
+   routes — those are Admin-only.
 
-## FR-3 — Students
-*Spec: not yet written · Status: Not started*
+## Feature 3 — Residents
+*Details: not written yet · Status: Not started*
 
-- FR-3.1 The system SHALL maintain a student/resident record independent of their login account
-  (a Resident may exist in the system before they have login credentials, e.g. pending admission).
-- FR-3.2 A student record SHALL be linkable to a User account (role `resident`) once one exists.
-- FR-3.3 Admin/Manager SHALL be able to create, view, update, and (soft-)delete student records.
+1. The system keeps a resident's record separately from their login account — a resident can
+   exist in the system (e.g. as a pending admission) before they even have a login.
+2. A resident's record can later be connected to a login account once one is created for them.
+3. Admin and Manager can create, view, update, and remove resident records.
 
-## FR-4 — Rooms & Beds
-*Spec: not yet written · Status: Not started*
+## Feature 4 — Rooms & Beds
+*Details: not written yet · Status: Not started*
 
-- FR-4.1 The system SHALL track rooms with a bed capacity, and individual beds within each room.
-- FR-4.2 Each bed SHALL have a status (vacant / occupied / under maintenance).
-- FR-4.3 A room SHALL NOT be deletable while it has an occupied bed.
+1. The system tracks rooms, each with a maximum number of beds, and tracks each individual bed
+   inside that room.
+2. Every bed has a status: vacant, occupied, or under maintenance.
+3. A room cannot be deleted while any of its beds are occupied.
 
-## FR-5 — Room Allocation
-*Spec: not yet written · Status: Not started*
+## Feature 5 — Room Allocation
+*Details: not written yet · Status: Not started*
 
-- FR-5.1 The system SHALL allow assigning one resident to one vacant bed at a time.
-- FR-5.2 A resident SHALL NOT be assignable to a second bed while already occupying one.
-- FR-5.3 Reassignment (moving a resident between beds) SHALL be an explicit, auditable action,
-  not a silent overwrite.
+1. The system can assign one resident to one vacant bed.
+2. A resident who already has a bed cannot be assigned a second one.
+3. Moving a resident from one bed to another must be a deliberate, visible action — never a silent
+   overwrite of their previous assignment.
 
-## FR-6 — Check-in / Check-out
-*Spec: not yet written · Status: Not started*
+## Feature 6 — Check-in / Check-out
+*Details: not written yet · Status: Not started*
 
-- FR-6.1 Check-in SHALL require an active room allocation and SHALL record a timestamp + actor.
-- FR-6.2 Check-out SHALL free the bed (status returns to vacant) and record a timestamp + actor.
-- FR-6.3 The system SHALL define and enforce what happens to unpaid rent on check-out (resolved
-  in the FR-7 spec, not assumed here).
+1. Checking a resident in requires that they already have a room allocation, and records when it
+   happened and who did it.
+2. Checking a resident out frees up their bed (marks it vacant again) and records when it
+   happened and who did it.
+3. What happens to any unpaid rent at check-out time is a decision that gets made and written
+   down when the Rent & Payments feature is designed — it is not assumed here.
 
-## FR-7 — Rent & Payments
-*Spec: not yet written · Status: Not started*
+## Feature 7 — Rent & Payments
+*Details: not written yet · Status: Not started*
 
-- FR-7.1 The system SHALL track expected rent per allocation and recorded payments against it.
-- FR-7.2 Payments SHALL be recorded manually (no payment gateway integration — see BRD §4).
-- FR-7.3 The system SHALL be able to answer "who owes what, as of today" without manual calculation.
+1. The system tracks the rent expected for each room allocation, and the payments recorded
+   against it.
+2. Payments are entered into the system by hand after being collected — there is no online
+   payment gateway built in.
+3. At any time, the system can answer "who owes what, right now" without anyone doing the math
+   by hand.
 
-## FR-8 — Complaints
-*Spec: not yet written · Status: Not started*
+## Feature 8 — Complaints
+*Details: not written yet · Status: Not started*
 
-- FR-8.1 A Resident SHALL be able to submit a complaint tied to their own record.
-- FR-8.2 Manager/Admin SHALL be able to view, triage, and resolve complaints with a status
-  (open / in progress / resolved).
-- FR-8.3 A Resident SHALL only ever see their own complaints, never another resident's.
+1. A resident can submit a complaint, tied to their own record.
+2. Manager and Admin can view, prioritize, and resolve complaints, moving them through statuses:
+   open, in progress, resolved.
+3. A resident can only ever see their own complaints — never anyone else's.
 
-## FR-9 — Dashboard
-*Spec: not yet written · Status: Partially implemented (placeholder UI only)*
+## Feature 9 — Dashboard
+*Details: not written yet · Status: Partly built (layout only, no real data yet)*
 
-- FR-9.1 The dashboard SHALL show real, computed figures once the underlying module exists.
-- FR-9.2 The dashboard SHALL NEVER display a fabricated/placeholder number as if it were real
-  data — a not-yet-available metric shows an explicit "not tracked yet" state instead (this is a
-  hard rule, not a style preference — see [`Architecture.md`](./Architecture.md) §"Data honesty").
+1. The dashboard shows real numbers, calculated from actual data, once each underlying feature
+   exists.
+2. The dashboard must never show a made-up or placeholder number as if it were real. If a
+   feature's data doesn't exist yet, the dashboard says so plainly (e.g. "not tracked yet")
+   instead of guessing. This is a strict rule — see [`Architecture.md`](./Architecture.md),
+   section "Data honesty," for how it's enforced in the code.
