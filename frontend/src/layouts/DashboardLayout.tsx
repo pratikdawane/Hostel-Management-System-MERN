@@ -11,6 +11,7 @@ import {
   LogOut,
   Menu,
   Search,
+  UserRound,
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -19,6 +20,7 @@ import { ROLE_LABELS, type Role } from '@/types/auth';
 import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/lib/cn';
 import { getErrorMessage } from '@/utils/errors';
+import { getInitials } from '@/utils/format';
 import { NEU_RAISED, NEU_PRESSED, NEU_PRESS_ON_ACTIVE } from '@/styles/neumorphism';
 
 interface NavItem {
@@ -36,21 +38,14 @@ const NAV_ITEMS: NavItem[] = [
     roles: ['admin', 'manager', 'resident'],
   },
   { label: 'Manage Users', to: '/admin/users', icon: Users, roles: ['admin'] },
+  { label: 'Residents', to: '/residents', icon: UserRound, roles: ['admin', 'manager'] },
 ];
 
 const UPCOMING_MODULES = [
-  { label: 'Students', icon: Users },
   { label: 'Rooms & Beds', icon: BedDouble },
   { label: 'Rent & Payments', icon: Wallet },
   { label: 'Complaints', icon: MessageSquareWarning },
 ];
-
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  const first = parts[0]?.[0] ?? '';
-  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '';
-  return (first + last).toUpperCase();
-}
 
 export function DashboardLayout() {
   const { user, logout } = useAuth();

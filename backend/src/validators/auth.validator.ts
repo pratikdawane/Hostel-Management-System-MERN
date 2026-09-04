@@ -1,11 +1,11 @@
 import { z } from 'zod';
-import { emailSchema, passwordSchema } from './common.validator.js';
+import { emailSchema, mobileSchema, passwordSchema } from './common.validator.js';
 
 export const registerAdminSchema = z.object({
   name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100),
   email: emailSchema,
   password: passwordSchema,
-  phone: z.string().trim().min(7).max(20).optional(),
+  phone: mobileSchema.optional(),
 });
 
 export const loginSchema = z.object({

@@ -8,6 +8,9 @@ import { Setup } from '@/pages/Setup';
 import { Dashboard } from '@/pages/Dashboard';
 import { ChangePassword } from '@/pages/ChangePassword';
 import { ManageUsers } from '@/pages/admin/ManageUsers';
+import { ResidentsList } from '@/pages/residents/ResidentsList';
+import { ResidentForm } from '@/pages/residents/ResidentForm';
+import { ResidentDetail } from '@/pages/residents/ResidentDetail';
 import { Unauthorized } from '@/pages/Unauthorized';
 import { NotFound } from '@/pages/NotFound';
 
@@ -26,6 +29,13 @@ export function AppRoutes() {
 
           <Route element={<RoleGuard allow={['admin']} />}>
             <Route path="/admin/users" element={<ManageUsers />} />
+          </Route>
+
+          <Route element={<RoleGuard allow={['admin', 'manager']} />}>
+            <Route path="/residents" element={<ResidentsList />} />
+            <Route path="/residents/new" element={<ResidentForm mode="create" />} />
+            <Route path="/residents/:id" element={<ResidentDetail />} />
+            <Route path="/residents/:id/edit" element={<ResidentForm mode="edit" />} />
           </Route>
         </Route>
       </Route>

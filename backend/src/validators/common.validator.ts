@@ -18,3 +18,9 @@ export const passwordSchema = z
 export const objectIdSchema = z
   .string()
   .refine((value) => Types.ObjectId.isValid(value), { message: 'Invalid id' });
+
+// Indian mobile numbers: exactly 10 digits, first digit 6-9.
+export const mobileSchema = z
+  .string()
+  .trim()
+  .regex(/^[6-9]\d{9}$/, 'Enter a valid 10-digit mobile number starting with 6-9');
