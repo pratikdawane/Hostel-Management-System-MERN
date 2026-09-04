@@ -11,6 +11,7 @@ import {
   LogOut,
   Menu,
   Search,
+  UserRound,
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -36,10 +37,10 @@ const NAV_ITEMS: NavItem[] = [
     roles: ['admin', 'manager', 'resident'],
   },
   { label: 'Manage Users', to: '/admin/users', icon: Users, roles: ['admin'] },
+  { label: 'Residents', to: '/residents', icon: UserRound, roles: ['admin', 'manager'] },
 ];
 
 const UPCOMING_MODULES = [
-  { label: 'Students', icon: Users },
   { label: 'Rooms & Beds', icon: BedDouble },
   { label: 'Rent & Payments', icon: Wallet },
   { label: 'Complaints', icon: MessageSquareWarning },

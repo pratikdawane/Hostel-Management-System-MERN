@@ -1,6 +1,9 @@
-import { Users, BedDouble, Wallet, MessageSquareWarning } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Users, UserCheck, BedDouble, Wallet, MessageSquareWarning } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { ROLE_LABELS } from '@/types/auth';
+import type { ResidentStats } from '@/types/resident';
+import * as residentService from '@/services/residentService';
 import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/lib/cn';
 import { NEU_RAISED } from '@/styles/neumorphism';
@@ -11,11 +14,24 @@ interface StatTileProps {
   icon: typeof Users;
   label: string;
   accent?: boolean;
+  value?: number;
+  isLoading?: boolean;
+  placeholderLabel?: string;
 }
 
-/** Placeholder stat card: the Students/Rooms/Rent/Complaints modules aren't built yet, so this
- * shows an honest "not tracked yet" state instead of a fabricated number. */
-function StatTile({ icon: Icon, label, accent = false }: StatTileProps) {
+/** Stat card: shows a real, live number once its data source is available and reachable by
+ * this role; otherwise it shows an honest placeholder instead of a fabricated number — never
+ * a guess. */
+function StatTile({
+  icon: Icon,
+  label,
+  accent = false,
+  value,
+  isLoading = false,
+  placeholderLabel = 'Soon',
+}: StatTileProps) {
+  const hasValue = value !== undefined;
+
   return (
     <div
       className={cn(
@@ -33,21 +49,35 @@ function StatTile({ icon: Icon, label, accent = false }: StatTileProps) {
         >
           <Icon className="h-5 w-5" strokeWidth={1.8} />
         </div>
-        {accent ? (
-          <span className="inline-flex items-center rounded-full bg-white/20 px-2.5 py-1 text-xs font-medium text-white">
-            Soon
-          </span>
-        ) : (
-          <Badge variant="neutral">Soon</Badge>
-        )}
+        {!hasValue &&
+          !isLoading &&
+          (accent ? (
+            <span className="inline-flex items-center rounded-full bg-white/20 px-2.5 py-1 text-xs font-medium text-white">
+              {placeholderLabel}
+            </span>
+          ) : (
+            <Badge variant="neutral">{placeholderLabel}</Badge>
+          ))}
       </div>
       <div>
-        <p
-          className={cn('text-2xl font-bold', accent ? 'text-white' : 'text-gray-300')}
-          aria-label="Not tracked yet"
-        >
-          —
-        </p>
+        {isLoading ? (
+          <div
+            className={cn(
+              'h-8 w-14 animate-pulse rounded-md',
+              accent ? 'bg-white/20' : 'bg-gray-100',
+            )}
+          />
+        ) : (
+          <p
+            className={cn(
+              'text-2xl font-bold',
+              accent ? 'text-white' : hasValue ? 'text-gray-900' : 'text-gray-300',
+            )}
+            aria-label={hasValue ? undefined : 'Not tracked yet'}
+          >
+            {hasValue ? value : '—'}
+          </p>
+        )}
         <p className={cn('mt-0.5 text-xs font-medium', accent ? 'text-white/70' : 'text-gray-500')}>
           {label}
         </p>
@@ -58,6 +88,32 @@ function StatTile({ icon: Icon, label, accent = false }: StatTileProps) {
 
 export function Dashboard() {
   const { user } = useAuth();
+  const [residentStats, setResidentStats] = useState<ResidentStats | null>(null);
+  const [isStatsLoading, setIsStatsLoading] = useState(false);
+  const canViewResidents = user?.role === 'admin' || user?.role === 'manager';
+
+  useEffect(() => {
+    if (!canViewResidents) return;
+
+    let cancelled = false;
+    setIsStatsLoading(true);
+
+    residentService
+      .getResidentStats()
+      .then((stats) => {
+        if (!cancelled) setResidentStats(stats);
+      })
+      .catch(() => {
+        // Leave residentStats null — the tile falls back to an honest "Unavailable" placeholder.
+      })
+      .finally(() => {
+        if (!cancelled) setIsStatsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canViewResidents]);
 
   if (!user) return null;
 
@@ -74,7 +130,21 @@ export function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile accent icon={Users} label="Total students" />
+        <StatTile
+          accent
+          icon={Users}
+          label="Total residents"
+          value={canViewResidents ? residentStats?.total : undefined}
+          isLoading={canViewResidents && isStatsLoading}
+          placeholderLabel={canViewResidents ? 'Unavailable' : 'Staff only'}
+        />
+        <StatTile
+          icon={UserCheck}
+          label="Active residents"
+          value={canViewResidents ? residentStats?.active : undefined}
+          isLoading={canViewResidents && isStatsLoading}
+          placeholderLabel={canViewResidents ? 'Unavailable' : 'Staff only'}
+        />
         <StatTile icon={BedDouble} label="Remaining rooms" />
         <StatTile icon={Wallet} label="Revenue" />
         <StatTile icon={MessageSquareWarning} label="Complaints" />
