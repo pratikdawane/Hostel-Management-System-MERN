@@ -1,13 +1,13 @@
 import { z } from 'zod';
 import { ROLES } from '../constants/roles.js';
-import { emailSchema, passwordSchema, objectIdSchema } from './common.validator.js';
+import { emailSchema, mobileSchema, passwordSchema, objectIdSchema } from './common.validator.js';
 
 export const createUserSchema = z.object({
   name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100),
   email: emailSchema,
   password: passwordSchema,
   role: z.enum(ROLES),
-  phone: z.string().trim().min(7).max(20).optional(),
+  phone: mobileSchema.optional(),
 });
 
 export const listUsersQuerySchema = z.object({

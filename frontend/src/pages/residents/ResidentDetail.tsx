@@ -16,7 +16,7 @@ import {
   Unlink,
 } from 'lucide-react';
 import * as residentService from '@/services/residentService';
-import type { Resident, ResidentStatus } from '@/types/resident';
+import type { Resident } from '@/types/resident';
 import { GENDER_LABELS, RESIDENT_STATUS_LABELS } from '@/types/resident';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -24,19 +24,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { getErrorMessage } from '@/utils/errors';
-
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  const first = parts[0]?.[0] ?? '';
-  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '';
-  return (first + last).toUpperCase();
-}
-
-function statusBadgeVariant(status: ResidentStatus): 'success' | 'warning' | 'neutral' {
-  if (status === 'ACTIVE') return 'success';
-  if (status === 'INACTIVE') return 'warning';
-  return 'neutral';
-}
+import { getInitials, statusBadgeVariant } from '@/utils/resident';
 
 interface FieldRowProps {
   icon: typeof Mail;

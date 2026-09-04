@@ -9,7 +9,16 @@ const passwordSchema = z
   .regex(/[A-Z]/, 'Must contain an uppercase letter')
   .regex(/[0-9]/, 'Must contain a number');
 
-const optionalPhoneSchema = z.string().trim().optional().or(z.literal(''));
+// Indian mobile numbers: exactly 10 digits, first digit 6-9.
+const mobileRegex = /^[6-9]\d{9}$/;
+const mobileErrorMessage = 'Enter a valid 10-digit mobile number starting with 6-9';
+
+const optionalPhoneSchema = z
+  .string()
+  .trim()
+  .optional()
+  .or(z.literal(''))
+  .refine((value) => !value || mobileRegex.test(value), { message: mobileErrorMessage });
 
 export const loginSchema = z.object({
   email: emailSchema,
@@ -50,14 +59,7 @@ export const createUserSchema = z.object({
 });
 export type CreateUserFormValues = z.infer<typeof createUserSchema>;
 
-const optionalEmailSchema = z
-  .string()
-  .trim()
-  .optional()
-  .or(z.literal(''))
-  .refine((value) => !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value), {
-    message: 'Enter a valid email address',
-  });
+const optionalEmailSchema = z.union([emailSchema, z.literal('')]).optional();
 
 const optionalUrlSchema = z
   .string()
@@ -77,7 +79,7 @@ export const residentSchema = z
     dateOfBirth: z.string().optional().or(z.literal('')),
     address: z.string().trim().max(300).optional().or(z.literal('')),
     emergencyContactName: z.string().trim().max(100).optional().or(z.literal('')),
-    emergencyContactPhone: z.string().trim().max(20).optional().or(z.literal('')),
+    emergencyContactPhone: optionalPhoneSchema,
     emergencyContactRelation: z.string().trim().max(50).optional().or(z.literal('')),
     college: z.string().trim().max(150).optional().or(z.literal('')),
     course: z.string().trim().max(150).optional().or(z.literal('')),

@@ -12,31 +12,34 @@ function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-async function assertEmailAvailable(email: string | undefined, excludeId?: string): Promise<void> {
-  if (!email) return;
-  const filter: Record<string, unknown> = { email };
+async function assertFieldAvailable(
+  field: 'email' | 'studentId',
+  value: string | undefined,
+  excludeId: string | undefined,
+  conflictMessage: string,
+): Promise<void> {
+  if (!value) return;
+  const filter: Record<string, unknown> = { [field]: value };
   if (excludeId) {
     filter._id = { $ne: excludeId };
   }
   const taken = await Resident.exists(filter);
   if (taken) {
-    throw ApiError.conflict('A resident with this email already exists');
+    throw ApiError.conflict(conflictMessage);
   }
 }
 
-async function assertStudentIdAvailable(
-  studentId: string | undefined,
-  excludeId?: string,
-): Promise<void> {
-  if (!studentId) return;
-  const filter: Record<string, unknown> = { studentId };
-  if (excludeId) {
-    filter._id = { $ne: excludeId };
-  }
-  const taken = await Resident.exists(filter);
-  if (taken) {
-    throw ApiError.conflict('A resident with this student ID already exists');
-  }
+function assertEmailAvailable(email: string | undefined, excludeId?: string): Promise<void> {
+  return assertFieldAvailable('email', email, excludeId, 'A resident with this email already exists');
+}
+
+function assertStudentIdAvailable(studentId: string | undefined, excludeId?: string): Promise<void> {
+  return assertFieldAvailable(
+    'studentId',
+    studentId,
+    excludeId,
+    'A resident with this student ID already exists',
+  );
 }
 
 async function applyUserLink(resident: ResidentDocument, userId: string | null): Promise<void> {

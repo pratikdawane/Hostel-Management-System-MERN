@@ -69,7 +69,15 @@ export interface CreateResidentInput {
   profileImage?: string;
 }
 
-export interface UpdateResidentInput extends Partial<CreateResidentInput> {
+type Clearable<T> = { [K in keyof T]?: T[K] | null };
+
+/**
+ * `undefined` (key omitted) means "leave unchanged"; `null` means "clear this
+ * field". JSON.stringify drops `undefined` keys but keeps `null` ones, so the
+ * update payload must use `null` to clear a field on the server — see
+ * ResidentForm's buildUpdatePayload.
+ */
+export interface UpdateResidentInput extends Clearable<CreateResidentInput> {
   status?: ResidentStatus;
   userId?: string | null;
 }

@@ -63,6 +63,8 @@ export function CreateUserModal({ isOpen, onClose, onCreated }: CreateUserModalP
         <Input
           label="Phone (optional)"
           type="tel"
+          inputMode="numeric"
+          maxLength={10}
           leftIcon={<Phone className="h-4 w-4" strokeWidth={1.8} />}
           error={errors.phone?.message}
           {...register('phone')}

@@ -99,35 +99,59 @@ export function ResidentForm({ mode }: ResidentFormProps) {
   }, [mode, id, reset]);
 
   const onSubmit = async (values: ResidentFormValues) => {
-    const payload: CreateResidentInput = {
-      name: values.name,
-      email: values.email || undefined,
-      phone: values.phone || undefined,
-      gender: values.gender || undefined,
-      dateOfBirth: values.dateOfBirth || undefined,
-      address: values.address || undefined,
-      college: values.college || undefined,
-      course: values.course || undefined,
-      studentId: values.studentId || undefined,
-      profileImage: values.profileImage || undefined,
-      emergencyContact:
-        values.emergencyContactName && values.emergencyContactPhone
-          ? {
-              name: values.emergencyContactName,
-              phone: values.emergencyContactPhone,
-              relation: values.emergencyContactRelation || undefined,
-            }
-          : undefined,
-    };
-
     try {
       if (mode === 'create') {
+        // On create there is no prior value to preserve, so a blank field can
+        // simply be omitted (`undefined`) — it's never sent at all.
+        const payload: CreateResidentInput = {
+          name: values.name,
+          email: values.email || undefined,
+          phone: values.phone || undefined,
+          gender: values.gender || undefined,
+          dateOfBirth: values.dateOfBirth || undefined,
+          address: values.address || undefined,
+          college: values.college || undefined,
+          course: values.course || undefined,
+          studentId: values.studentId || undefined,
+          profileImage: values.profileImage || undefined,
+          emergencyContact:
+            values.emergencyContactName && values.emergencyContactPhone
+              ? {
+                  name: values.emergencyContactName,
+                  phone: values.emergencyContactPhone,
+                  relation: values.emergencyContactRelation || undefined,
+                }
+              : undefined,
+        };
         const resident = await residentService.createResident(payload);
         toast.success(`${resident.name} added`);
         navigate(`/residents/${resident.id}`);
       } else if (id) {
+        // On update, `undefined` keys are dropped by JSON.stringify before the
+        // request ever leaves the browser, so they can't be used to mean
+        // "clear this field" — the server would just see the key as absent
+        // and leave the existing value untouched. A blank field must be sent
+        // as an explicit `null` so the server can tell "cleared" apart from
+        // "left unchanged".
         const updatePayload: UpdateResidentInput = {
-          ...payload,
+          name: values.name,
+          email: values.email || null,
+          phone: values.phone || null,
+          gender: values.gender || null,
+          dateOfBirth: values.dateOfBirth || null,
+          address: values.address || null,
+          college: values.college || null,
+          course: values.course || null,
+          studentId: values.studentId || null,
+          profileImage: values.profileImage || null,
+          emergencyContact:
+            values.emergencyContactName && values.emergencyContactPhone
+              ? {
+                  name: values.emergencyContactName,
+                  phone: values.emergencyContactPhone,
+                  relation: values.emergencyContactRelation || undefined,
+                }
+              : null,
           status,
           userId: linkedUserId.trim() ? linkedUserId.trim() : null,
         };
@@ -244,7 +268,14 @@ export function ResidentForm({ mode }: ResidentFormProps) {
               error={errors.email?.message}
               {...register('email')}
             />
-            <Input label="Phone" type="tel" error={errors.phone?.message} {...register('phone')} />
+            <Input
+              label="Phone"
+              type="tel"
+              inputMode="numeric"
+              maxLength={10}
+              error={errors.phone?.message}
+              {...register('phone')}
+            />
             <Input
               label="Address"
               error={errors.address?.message}
@@ -267,6 +298,8 @@ export function ResidentForm({ mode }: ResidentFormProps) {
             <Input
               label="Phone"
               type="tel"
+              inputMode="numeric"
+              maxLength={10}
               error={errors.emergencyContactPhone?.message}
               {...register('emergencyContactPhone')}
             />

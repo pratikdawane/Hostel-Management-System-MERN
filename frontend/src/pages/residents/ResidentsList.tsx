@@ -13,21 +13,9 @@ import { Select } from '@/components/ui/Select';
 import { Input } from '@/components/ui/Input';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { getErrorMessage } from '@/utils/errors';
+import { getInitials, statusBadgeVariant } from '@/utils/resident';
 
 const PAGE_SIZE = 10;
-
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  const first = parts[0]?.[0] ?? '';
-  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '';
-  return (first + last).toUpperCase();
-}
-
-function statusBadgeVariant(status: ResidentStatus): 'success' | 'warning' | 'neutral' {
-  if (status === 'ACTIVE') return 'success';
-  if (status === 'INACTIVE') return 'warning';
-  return 'neutral';
-}
 
 export function ResidentsList() {
   const navigate = useNavigate();
@@ -51,28 +39,37 @@ export function ResidentsList() {
     return () => clearTimeout(timeout);
   }, [searchInput]);
 
-  const fetchResidents = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const result = await residentService.listResidents({
-        page,
-        limit: PAGE_SIZE,
-        status: statusFilter || undefined,
-        q: query || undefined,
-      });
-      setResidents(result.residents);
-      setTotal(result.total);
-      setTotalPages(result.totalPages);
-    } catch (err) {
-      setError(getErrorMessage(err, 'Failed to load residents'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [page, statusFilter, query]);
+  const fetchResidents = useCallback(
+    async (signal?: { cancelled: boolean }) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const result = await residentService.listResidents({
+          page,
+          limit: PAGE_SIZE,
+          status: statusFilter || undefined,
+          q: query || undefined,
+        });
+        if (signal?.cancelled) return;
+        setResidents(result.residents);
+        setTotal(result.total);
+        setTotalPages(result.totalPages);
+      } catch (err) {
+        if (signal?.cancelled) return;
+        setError(getErrorMessage(err, 'Failed to load residents'));
+      } finally {
+        if (!signal?.cancelled) setIsLoading(false);
+      }
+    },
+    [page, statusFilter, query],
+  );
 
   useEffect(() => {
-    void fetchResidents();
+    const signal = { cancelled: false };
+    void fetchResidents(signal);
+    return () => {
+      signal.cancelled = true;
+    };
   }, [fetchResidents]);
 
   const handleDelete = async () => {

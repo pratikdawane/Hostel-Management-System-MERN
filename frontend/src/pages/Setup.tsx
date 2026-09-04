@@ -130,6 +130,8 @@ export function Setup() {
             <input
               id="setup-phone"
               type="tel"
+              inputMode="numeric"
+              maxLength={10}
               autoComplete="tel"
               placeholder="Phone (optional)"
               aria-invalid={Boolean(errors.phone)}
