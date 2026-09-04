@@ -71,8 +71,7 @@ export async function createResident(
   input: CreateResidentInput,
   createdBy: string,
 ): Promise<ResidentDocument> {
-  await assertEmailAvailable(input.email);
-  await assertStudentIdAvailable(input.studentId);
+  await Promise.all([assertEmailAvailable(input.email), assertStudentIdAvailable(input.studentId)]);
 
   return Resident.create({ ...input, createdBy });
 }

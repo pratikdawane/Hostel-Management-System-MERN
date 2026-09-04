@@ -13,7 +13,8 @@ import { Select } from '@/components/ui/Select';
 import { Input } from '@/components/ui/Input';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { getErrorMessage } from '@/utils/errors';
-import { getInitials, statusBadgeVariant } from '@/utils/resident';
+import { statusBadgeVariant } from '@/utils/resident';
+import { getInitials } from '@/utils/format';
 
 const PAGE_SIZE = 10;
 

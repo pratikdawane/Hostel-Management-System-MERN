@@ -24,7 +24,8 @@ import { Badge } from '@/components/ui/Badge';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { getErrorMessage } from '@/utils/errors';
-import { getInitials, statusBadgeVariant } from '@/utils/resident';
+import { statusBadgeVariant } from '@/utils/resident';
+import { getInitials } from '@/utils/format';
 
 interface FieldRowProps {
   icon: typeof Mail;
