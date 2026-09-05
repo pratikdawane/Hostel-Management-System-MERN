@@ -3,10 +3,13 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   ArrowLeft,
+  BedDouble,
+  Building2,
   Cake,
   GraduationCap,
   IdCard,
   Link2,
+  LogOut,
   Mail,
   MapPin,
   Pencil,
@@ -14,10 +17,13 @@ import {
   ShieldAlert,
   Trash2,
   Unlink,
+  Wallet,
 } from 'lucide-react';
 import * as residentService from '@/services/residentService';
+import * as allocationService from '@/services/allocationService';
 import type { Resident } from '@/types/resident';
 import { GENDER_LABELS, RESIDENT_STATUS_LABELS } from '@/types/resident';
+import type { Allocation } from '@/types/allocation';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -56,6 +62,9 @@ export function ResidentDetail() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUnlinking, setIsUnlinking] = useState(false);
+  const [activeAllocation, setActiveAllocation] = useState<Allocation | null>(null);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
 
   const fetchResident = useCallback(async () => {
     if (!id) return;
@@ -74,6 +83,23 @@ export function ResidentDetail() {
   useEffect(() => {
     void fetchResident();
   }, [fetchResident]);
+
+  const fetchActiveAllocation = useCallback(async (residentId: string) => {
+    try {
+      const result = await allocationService.listAllocations({
+        residentId,
+        status: 'ACTIVE',
+        limit: 1,
+      });
+      setActiveAllocation(result.allocations[0] ?? null);
+    } catch {
+      setActiveAllocation(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (resident) void fetchActiveAllocation(resident.id);
+  }, [resident, fetchActiveAllocation]);
 
   const handleDelete = async () => {
     if (!resident) return;
@@ -99,6 +125,22 @@ export function ResidentDetail() {
       toast.error(getErrorMessage(err, 'Could not unlink account'));
     } finally {
       setIsUnlinking(false);
+    }
+  };
+
+  const handleCheckout = async () => {
+    if (!resident || !activeAllocation) return;
+    setIsCheckingOut(true);
+    try {
+      await allocationService.checkoutAllocation(activeAllocation.id);
+      toast.success(`${resident.name} was checked out and their bed is now available`);
+      setIsCheckoutOpen(false);
+      setActiveAllocation(null);
+      setResident((prev) => (prev ? { ...prev, status: 'CHECKED_OUT' } : prev));
+    } catch (err) {
+      toast.error(getErrorMessage(err, 'Could not check out resident'));
+    } finally {
+      setIsCheckingOut(false);
     }
   };
 
@@ -209,6 +251,40 @@ export function ResidentDetail() {
         </CardBody>
       </Card>
 
+      {activeAllocation && (
+        <Card>
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h3 className="text-sm font-semibold text-gray-900">Current allocation</h3>
+            <Button
+              variant="primary"
+              size="sm"
+              leftIcon={<LogOut className="h-4 w-4" strokeWidth={1.8} />}
+              onClick={() => setIsCheckoutOpen(true)}
+            >
+              Check out
+            </Button>
+          </CardHeader>
+          <CardBody className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <FieldRow
+              icon={Building2}
+              label="Room"
+              value={activeAllocation.room ? `Room ${activeAllocation.room.roomNumber}` : undefined}
+            />
+            <FieldRow icon={BedDouble} label="Bed" value={activeAllocation.bed?.label} />
+            <FieldRow
+              icon={Cake}
+              label="Check-in date"
+              value={new Date(activeAllocation.checkInDate).toLocaleDateString()}
+            />
+            <FieldRow
+              icon={Wallet}
+              label="Monthly rent"
+              value={`₹${activeAllocation.monthlyRent.toLocaleString('en-IN')}`}
+            />
+          </CardBody>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Card>
           <CardHeader>
@@ -270,6 +346,17 @@ export function ResidentDetail() {
         isLoading={isDeleting}
         onConfirm={() => void handleDelete()}
         onCancel={() => setIsDeleteOpen(false)}
+      />
+
+      <ConfirmDialog
+        isOpen={isCheckoutOpen}
+        title="Check out resident"
+        description={`Check out ${resident.name}? Their bed will become available and their status will change to Checked out. This cannot be undone.`}
+        confirmLabel="Check out"
+        variant="primary"
+        isLoading={isCheckingOut}
+        onConfirm={() => void handleCheckout()}
+        onCancel={() => setIsCheckoutOpen(false)}
       />
     </div>
   );

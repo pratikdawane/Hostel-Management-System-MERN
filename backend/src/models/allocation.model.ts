@@ -12,6 +12,7 @@ export interface IRoomAllocation {
   securityDeposit: number;
   status: AllocationStatus;
   createdBy: Types.ObjectId;
+  checkedOutBy?: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -67,6 +68,10 @@ const roomAllocationSchema = new Schema<IRoomAllocation, RoomAllocationModelType
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
+    },
+    checkedOutBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
     },
   },
   {

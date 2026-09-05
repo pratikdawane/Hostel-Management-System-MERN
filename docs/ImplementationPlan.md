@@ -22,7 +22,7 @@
 
 ## Context
 
-Techonsy is building the **Hostel Management System (HMS)** — a single-hostel operations app for
+This project is building the **Hostel Management System (HMS)** — a single-hostel operations app for
 tracking residents, rooms, beds, rent, and complaints from one place instead of registers and
 spreadsheets. It is deliberately **not** a multi-tenant SaaS product — one hostel, one database,
 three roles (Admin, Manager, Resident). Built with the MERN stack + TypeScript: React 19 + Vite +

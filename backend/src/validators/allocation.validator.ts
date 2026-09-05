@@ -23,6 +23,7 @@ export const createAllocationSchema = z
 export const listAllocationsQuerySchema = z.object({
   status: z.enum(ALLOCATION_STATUSES).optional(),
   roomId: objectIdSchema.optional(),
+  residentId: objectIdSchema.optional(),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
 });
