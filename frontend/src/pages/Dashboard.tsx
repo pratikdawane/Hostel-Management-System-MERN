@@ -11,6 +11,7 @@ import { cn } from '@/lib/cn';
 import { NEU_RAISED } from '@/styles/neumorphism';
 import { MiniCalendar } from '@/components/dashboard/MiniCalendar';
 import { RevenueChart } from '@/components/dashboard/RevenueChart';
+import { OccupancyChart } from '@/components/dashboard/OccupancyChart';
 
 interface StatTileProps {
   icon: typeof Users;
@@ -205,7 +206,17 @@ export function Dashboard() {
           </div>
         )}
 
-        <div className={cn(user.role === 'admin' ? '' : 'lg:col-span-3')}>
+        {canViewRooms && (
+          <div className={cn(user.role === 'admin' ? '' : 'lg:col-span-1')}>
+            <OccupancyChart stats={roomStats} isLoading={isRoomStatsLoading} />
+          </div>
+        )}
+
+        <div
+          className={cn(
+            user.role === 'admin' || !canViewRooms ? 'lg:col-span-3' : 'lg:col-span-2',
+          )}
+        >
           <MiniCalendar />
         </div>
       </div>
