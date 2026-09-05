@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   Building2,
+  ClipboardList,
   LayoutDashboard,
   Users,
   BedDouble,
@@ -40,6 +41,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Manage Users', to: '/admin/users', icon: Users, roles: ['admin'] },
   { label: 'Residents', to: '/residents', icon: UserRound, roles: ['admin', 'manager'] },
   { label: 'Rooms & Beds', to: '/rooms', icon: BedDouble, roles: ['admin', 'manager'] },
+  { label: 'Allocations', to: '/allocations', icon: ClipboardList, roles: ['admin', 'manager'] },
 ];
 
 const UPCOMING_MODULES = [

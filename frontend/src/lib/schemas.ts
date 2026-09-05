@@ -115,3 +115,21 @@ export const bedSchema = z.object({
   label: z.string().trim().min(1, 'Bed label is required').max(10, 'Bed label is too long'),
 });
 export type BedFormValues = z.infer<typeof bedSchema>;
+
+export const allocationSchema = z
+  .object({
+    checkInDate: z.string().min(1, 'Check-in date is required'),
+    expectedCheckOutDate: z.string().optional().or(z.literal('')),
+    monthlyRent: z.number('Monthly rent is required').min(0, 'Monthly rent cannot be negative'),
+    securityDeposit: z
+      .number('Security deposit is required')
+      .min(0, 'Security deposit cannot be negative'),
+  })
+  .refine(
+    (data) => !data.expectedCheckOutDate || data.expectedCheckOutDate > data.checkInDate,
+    {
+      message: 'Must be after the check-in date',
+      path: ['expectedCheckOutDate'],
+    },
+  );
+export type AllocationFormValues = z.infer<typeof allocationSchema>;
