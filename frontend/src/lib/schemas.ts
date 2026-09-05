@@ -95,3 +95,24 @@ export const residentSchema = z
     path: ['emergencyContactPhone'],
   });
 export type ResidentFormValues = z.infer<typeof residentSchema>;
+
+const MAX_ROOM_CAPACITY = 12;
+
+export const roomSchema = z.object({
+  roomNumber: z.string().trim().min(1, 'Room number is required').max(20, 'Room number is too long'),
+  floor: z.number('Floor is required').int('Floor must be a whole number'),
+  type: z.enum(['SINGLE', 'DOUBLE', 'TRIPLE', 'FOUR_SHARING', 'DORMITORY']),
+  capacity: z
+    .number('Capacity is required')
+    .int('Capacity must be a whole number')
+    .min(1, 'Capacity must be at least 1')
+    .max(MAX_ROOM_CAPACITY, `Capacity cannot exceed ${MAX_ROOM_CAPACITY}`),
+  monthlyRent: z.number('Monthly rent is required').min(0, 'Monthly rent cannot be negative'),
+  description: z.string().trim().max(500).optional().or(z.literal('')),
+});
+export type RoomFormValues = z.infer<typeof roomSchema>;
+
+export const bedSchema = z.object({
+  label: z.string().trim().min(1, 'Bed label is required').max(10, 'Bed label is too long'),
+});
+export type BedFormValues = z.infer<typeof bedSchema>;
