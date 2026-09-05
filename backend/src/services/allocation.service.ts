@@ -128,6 +128,7 @@ export async function listAllocations(
   const filter: Record<string, unknown> = {};
   if (query.status) filter.status = query.status;
   if (query.roomId) filter.roomId = query.roomId;
+  if (query.residentId) filter.residentId = query.residentId;
 
   const skip = (query.page - 1) * query.limit;
 
@@ -187,4 +188,64 @@ export async function cancelAllocation(id: string): Promise<RoomAllocationDocume
   await refreshRoomStatus(String(allocation.roomId));
 
   return allocation;
+}
+
+/**
+ * Checks a resident out: allocation -> COMPLETED, bed -> AVAILABLE, resident -> CHECKED_OUT,
+ * all inside one transaction so a failure partway through leaves nothing half-applied (same
+ * guarded-update pattern as createAllocation, guarding against a race with a concurrent
+ * cancel/checkout on the same allocation or bed). No rent/payment ledger exists yet (Feature 7),
+ * so checkout never blocks on or computes an "amount due" — see docs/specs/005-checkinout.md.
+ */
+export async function checkoutAllocation(
+  id: string,
+  checkedOutBy: string,
+): Promise<RoomAllocationDocument> {
+  const allocation = await RoomAllocation.findById(id);
+  if (!allocation) {
+    throw ApiError.notFound('Allocation not found');
+  }
+  if (allocation.status !== 'ACTIVE') {
+    throw ApiError.conflict('Only an active allocation can be checked out');
+  }
+
+  const session = await mongoose.startSession();
+  try {
+    await session.withTransaction(async () => {
+      const allocationUpdate = await RoomAllocation.updateOne(
+        { _id: allocation._id, status: 'ACTIVE' },
+        {
+          $set: {
+            status: 'COMPLETED',
+            actualCheckOutDate: new Date(),
+            checkedOutBy,
+          },
+        },
+        { session },
+      );
+      if (allocationUpdate.matchedCount === 0) {
+        throw ApiError.conflict('Only an active allocation can be checked out');
+      }
+
+      const bedUpdate = await Bed.updateOne(
+        { _id: allocation.bedId, status: 'OCCUPIED' },
+        { $set: { status: 'AVAILABLE' }, $unset: { residentId: 1 } },
+        { session },
+      );
+      if (bedUpdate.matchedCount === 0) {
+        throw ApiError.conflict('Bed is not currently marked occupied');
+      }
+
+      await Resident.updateOne(
+        { _id: allocation.residentId },
+        { $set: { status: 'CHECKED_OUT' } },
+        { session },
+      );
+    });
+
+    await refreshRoomStatus(String(allocation.roomId));
+    return (await RoomAllocation.findById(id))!;
+  } finally {
+    await session.endSession();
+  }
 }

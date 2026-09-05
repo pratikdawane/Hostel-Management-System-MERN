@@ -24,5 +24,10 @@ router.patch(
   validate(allocationIdParamSchema, 'params'),
   allocationController.cancelAllocation,
 );
+router.post(
+  '/:id/checkout',
+  validate(allocationIdParamSchema, 'params'),
+  allocationController.checkoutAllocation,
+);
 
 export default router;

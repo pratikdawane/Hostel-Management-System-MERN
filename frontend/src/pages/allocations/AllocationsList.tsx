@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ClipboardList, Plus, XCircle } from 'lucide-react';
+import { ClipboardList, LogOut, Plus, XCircle } from 'lucide-react';
 import * as allocationService from '@/services/allocationService';
 import type { Allocation, AllocationStatus } from '@/types/allocation';
 import { ALLOCATION_STATUS_LABELS } from '@/types/allocation';
@@ -31,6 +31,8 @@ export function AllocationsList() {
   const [error, setError] = useState<string | null>(null);
   const [cancelTarget, setCancelTarget] = useState<Allocation | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [checkoutTarget, setCheckoutTarget] = useState<Allocation | null>(null);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
 
   const fetchAllocations = useCallback(
     async (signal?: { cancelled: boolean }) => {
@@ -76,6 +78,21 @@ export function AllocationsList() {
       toast.error(getErrorMessage(err, 'Could not cancel allocation'));
     } finally {
       setIsCancelling(false);
+    }
+  };
+
+  const handleCheckout = async () => {
+    if (!checkoutTarget) return;
+    setIsCheckingOut(true);
+    try {
+      await allocationService.checkoutAllocation(checkoutTarget.id);
+      toast.success('Resident checked out and bed freed up');
+      setCheckoutTarget(null);
+      void fetchAllocations();
+    } catch (err) {
+      toast.error(getErrorMessage(err, 'Could not check out resident'));
+    } finally {
+      setIsCheckingOut(false);
     }
   };
 
@@ -191,15 +208,26 @@ export function AllocationsList() {
                     <td className="px-6 py-3.5">
                       <div className="flex items-center justify-end gap-1.5">
                         {allocation.status === 'ACTIVE' && (
-                          <button
-                            type="button"
-                            onClick={() => setCancelTarget(allocation)}
-                            className="cursor-pointer rounded-md p-2 text-gray-400 transition-colors duration-150 hover:bg-red-50 hover:text-red-600"
-                            aria-label={`Cancel allocation for ${allocation.resident?.name ?? 'resident'}`}
-                            title="Cancel allocation"
-                          >
-                            <XCircle className="h-4 w-4" strokeWidth={1.8} />
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => setCheckoutTarget(allocation)}
+                              className="cursor-pointer rounded-md p-2 text-gray-400 transition-colors duration-150 hover:bg-primary-50 hover:text-primary-600"
+                              aria-label={`Check out ${allocation.resident?.name ?? 'resident'}`}
+                              title="Check out"
+                            >
+                              <LogOut className="h-4 w-4" strokeWidth={1.8} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setCancelTarget(allocation)}
+                              className="cursor-pointer rounded-md p-2 text-gray-400 transition-colors duration-150 hover:bg-red-50 hover:text-red-600"
+                              aria-label={`Cancel allocation for ${allocation.resident?.name ?? 'resident'}`}
+                              title="Cancel allocation"
+                            >
+                              <XCircle className="h-4 w-4" strokeWidth={1.8} />
+                            </button>
+                          </>
                         )}
                       </div>
                     </td>
@@ -245,6 +273,17 @@ export function AllocationsList() {
         isLoading={isCancelling}
         onConfirm={() => void handleCancel()}
         onCancel={() => setCancelTarget(null)}
+      />
+
+      <ConfirmDialog
+        isOpen={checkoutTarget !== null}
+        title="Check out resident"
+        description={`Check out ${checkoutTarget?.resident?.name ?? 'this resident'}? Their bed will become available and their status will change to Checked out. This cannot be undone.`}
+        confirmLabel="Check out"
+        variant="primary"
+        isLoading={isCheckingOut}
+        onConfirm={() => void handleCheckout()}
+        onCancel={() => setCheckoutTarget(null)}
       />
     </div>
   );

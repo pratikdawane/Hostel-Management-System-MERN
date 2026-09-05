@@ -29,3 +29,14 @@ export async function cancelAllocation(req: Request, res: Response): Promise<voi
   const allocation = await allocationService.cancelAllocation(id);
   res.status(200).json(new ApiResponse(200, { allocation }, 'Allocation cancelled successfully'));
 }
+
+export async function checkoutAllocation(req: Request, res: Response): Promise<void> {
+  if (!req.user) {
+    throw ApiError.unauthorized();
+  }
+  const { id } = req.params as { id: string };
+  const allocation = await allocationService.checkoutAllocation(id, req.user.id);
+  res
+    .status(200)
+    .json(new ApiResponse(200, { allocation }, 'Resident checked out successfully'));
+}

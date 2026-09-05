@@ -10,6 +10,7 @@ import type {
 export interface ListAllocationsParams {
   status?: AllocationStatus;
   roomId?: string;
+  residentId?: string;
   page?: number;
   limit?: number;
 }
@@ -29,6 +30,13 @@ export async function listAllocations(
 export async function cancelAllocation(id: string): Promise<Allocation> {
   const { data } = await api.patch<ApiEnvelope<{ allocation: Allocation }>>(
     `/allocations/${id}/cancel`,
+  );
+  return data.data.allocation;
+}
+
+export async function checkoutAllocation(id: string): Promise<Allocation> {
+  const { data } = await api.post<ApiEnvelope<{ allocation: Allocation }>>(
+    `/allocations/${id}/checkout`,
   );
   return data.data.allocation;
 }
