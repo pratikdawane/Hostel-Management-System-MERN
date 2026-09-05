@@ -1,15 +1,12 @@
-import type { Types } from 'mongoose';
+import mongoose, { type Types } from 'mongoose';
 import { Room, type RoomDocument } from '../models/room.model.js';
 import { Bed, type BedDocument } from '../models/bed.model.js';
 import type { IResident } from '../models/resident.model.js';
 import { ApiError } from '../utils/ApiError.js';
-import type { RoomType, RoomStatus } from '../constants/room.js';
+import { escapeRegex } from '../utils/regex.js';
+import { MAX_ROOM_CAPACITY, type RoomType, type RoomStatus } from '../constants/room.js';
 import type { CreateRoomInput, ListRoomsQuery, UpdateRoomInput } from '../validators/room.validator.js';
 import type { CreateBedInput } from '../validators/bed.validator.js';
-
-function escapeRegex(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
 
 // Beds are labeled A, B, C, ... — capped at MAX_ROOM_CAPACITY (12) so this never needs a
 // fallback beyond the alphabet.
@@ -56,16 +53,28 @@ export async function createRoom(
 ): Promise<{ room: RoomDocument; beds: BedDocument[] }> {
   await assertRoomNumberAvailable(input.roomNumber);
 
-  const room = await Room.create({ ...input, status: 'AVAILABLE', createdBy });
-  const beds = await Bed.insertMany(
-    generateBedLabels(input.capacity).map((label) => ({
-      roomId: room._id,
-      label,
-      status: 'AVAILABLE',
-    })),
-  );
-
-  return { room, beds };
+  const session = await mongoose.startSession();
+  try {
+    let room!: RoomDocument;
+    let beds!: BedDocument[];
+    await session.withTransaction(async () => {
+      const created = await Room.create([{ ...input, status: 'AVAILABLE', createdBy }], {
+        session,
+      });
+      room = created[0]!;
+      beds = await Bed.insertMany(
+        generateBedLabels(input.capacity).map((label) => ({
+          roomId: room._id,
+          label,
+          status: 'AVAILABLE',
+        })),
+        { session },
+      );
+    });
+    return { room, beds };
+  } finally {
+    await session.endSession();
+  }
 }
 
 export interface BedCounts {
@@ -239,6 +248,11 @@ export async function createRoomBed(roomId: string, input: CreateBedInput): Prom
   const room = await Room.findById(roomId);
   if (!room) {
     throw ApiError.notFound('Room not found');
+  }
+
+  const bedCount = await Bed.countDocuments({ roomId });
+  if (bedCount >= MAX_ROOM_CAPACITY) {
+    throw ApiError.conflict(`A room cannot have more than ${MAX_ROOM_CAPACITY} beds`);
   }
 
   const taken = await Bed.exists({ roomId, label: input.label });

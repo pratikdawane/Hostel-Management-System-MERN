@@ -2,15 +2,12 @@ import { Types } from 'mongoose';
 import { Resident, type ResidentDocument } from '../models/resident.model.js';
 import { User } from '../models/user.model.js';
 import { ApiError } from '../utils/ApiError.js';
+import { escapeRegex } from '../utils/regex.js';
 import type {
   CreateResidentInput,
   ListResidentsQuery,
   UpdateResidentInput,
 } from '../validators/resident.validator.js';
-
-function escapeRegex(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
 
 async function assertFieldAvailable(
   field: 'email' | 'studentId',

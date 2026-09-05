@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MAX_ROOM_CAPACITY } from '@/types/room';
 
 const emailSchema = z.string().trim().toLowerCase().pipe(z.email('Enter a valid email address'));
 
@@ -95,8 +96,6 @@ export const residentSchema = z
     path: ['emergencyContactPhone'],
   });
 export type ResidentFormValues = z.infer<typeof residentSchema>;
-
-const MAX_ROOM_CAPACITY = 12;
 
 export const roomSchema = z.object({
   roomNumber: z.string().trim().min(1, 'Room number is required').max(20, 'Room number is too long'),

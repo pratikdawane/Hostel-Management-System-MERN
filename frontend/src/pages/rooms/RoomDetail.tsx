@@ -68,7 +68,7 @@ function AddBedModal({ isOpen, isSubmitting, onSubmit, onClose }: AddBedModalPro
 interface EditBedModalProps {
   bed: Bed | null;
   isSubmitting: boolean;
-  onSubmit: (values: { label: string; status: 'AVAILABLE' | 'MAINTENANCE' }) => void;
+  onSubmit: (values: { label: string; status?: 'AVAILABLE' | 'MAINTENANCE' }) => void;
   onClose: () => void;
 }
 
@@ -92,7 +92,9 @@ function EditBedModal({ bed, isSubmitting, onSubmit, onClose }: EditBedModalProp
   return (
     <Modal isOpen={bed !== null} onClose={onClose} title="Edit bed">
       <form
-        onSubmit={handleSubmit((values) => onSubmit({ label: values.label, status }))}
+        onSubmit={handleSubmit((values) =>
+          onSubmit({ label: values.label, ...(isOccupied ? {} : { status }) }),
+        )}
         className="flex flex-col gap-4"
         noValidate
       >
@@ -115,7 +117,7 @@ function EditBedModal({ bed, isSubmitting, onSubmit, onClose }: EditBedModalProp
           <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button type="submit" isLoading={isSubmitting} disabled={isOccupied}>
+          <Button type="submit" isLoading={isSubmitting}>
             Save changes
           </Button>
         </div>
@@ -205,7 +207,7 @@ export function RoomDetail() {
     }
   };
 
-  const handleSaveBed = async (values: { label: string; status: 'AVAILABLE' | 'MAINTENANCE' }) => {
+  const handleSaveBed = async (values: { label: string; status?: 'AVAILABLE' | 'MAINTENANCE' }) => {
     if (!editingBed) return;
     setIsSavingBed(true);
     try {
