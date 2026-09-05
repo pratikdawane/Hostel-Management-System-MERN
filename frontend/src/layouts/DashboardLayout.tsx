@@ -39,10 +39,10 @@ const NAV_ITEMS: NavItem[] = [
   },
   { label: 'Manage Users', to: '/admin/users', icon: Users, roles: ['admin'] },
   { label: 'Residents', to: '/residents', icon: UserRound, roles: ['admin', 'manager'] },
+  { label: 'Rooms & Beds', to: '/rooms', icon: BedDouble, roles: ['admin', 'manager'] },
 ];
 
 const UPCOMING_MODULES = [
-  { label: 'Rooms & Beds', icon: BedDouble },
   { label: 'Rent & Payments', icon: Wallet },
   { label: 'Complaints', icon: MessageSquareWarning },
 ];

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Users, UserCheck, BedDouble, Wallet, MessageSquareWarning } from 'lucide-react';
+import { Users, UserCheck, Building2, BedDouble, Wallet, MessageSquareWarning } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { ROLE_LABELS } from '@/types/auth';
 import type { ResidentStats } from '@/types/resident';
+import type { RoomStats } from '@/types/room';
 import * as residentService from '@/services/residentService';
+import * as roomService from '@/services/roomService';
 import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/lib/cn';
 import { NEU_RAISED } from '@/styles/neumorphism';
@@ -90,7 +92,10 @@ export function Dashboard() {
   const { user } = useAuth();
   const [residentStats, setResidentStats] = useState<ResidentStats | null>(null);
   const [isStatsLoading, setIsStatsLoading] = useState(false);
+  const [roomStats, setRoomStats] = useState<RoomStats | null>(null);
+  const [isRoomStatsLoading, setIsRoomStatsLoading] = useState(false);
   const canViewResidents = user?.role === 'admin' || user?.role === 'manager';
+  const canViewRooms = user?.role === 'admin' || user?.role === 'manager';
 
   useEffect(() => {
     if (!canViewResidents) return;
@@ -114,6 +119,29 @@ export function Dashboard() {
       cancelled = true;
     };
   }, [canViewResidents]);
+
+  useEffect(() => {
+    if (!canViewRooms) return;
+
+    let cancelled = false;
+    setIsRoomStatsLoading(true);
+
+    roomService
+      .getRoomStats()
+      .then((stats) => {
+        if (!cancelled) setRoomStats(stats);
+      })
+      .catch(() => {
+        // Leave roomStats null — the tiles fall back to an honest "Unavailable" placeholder.
+      })
+      .finally(() => {
+        if (!cancelled) setIsRoomStatsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canViewRooms]);
 
   if (!user) return null;
 
@@ -145,7 +173,27 @@ export function Dashboard() {
           isLoading={canViewResidents && isStatsLoading}
           placeholderLabel={canViewResidents ? 'Unavailable' : 'Staff only'}
         />
-        <StatTile icon={BedDouble} label="Remaining rooms" />
+        <StatTile
+          icon={Building2}
+          label="Total rooms"
+          value={canViewRooms ? roomStats?.totalRooms : undefined}
+          isLoading={canViewRooms && isRoomStatsLoading}
+          placeholderLabel={canViewRooms ? 'Unavailable' : 'Staff only'}
+        />
+        <StatTile
+          icon={BedDouble}
+          label="Total beds"
+          value={canViewRooms ? roomStats?.totalBeds : undefined}
+          isLoading={canViewRooms && isRoomStatsLoading}
+          placeholderLabel={canViewRooms ? 'Unavailable' : 'Staff only'}
+        />
+        <StatTile
+          icon={BedDouble}
+          label="Available beds"
+          value={canViewRooms ? roomStats?.availableBeds : undefined}
+          isLoading={canViewRooms && isRoomStatsLoading}
+          placeholderLabel={canViewRooms ? 'Unavailable' : 'Staff only'}
+        />
         <StatTile icon={Wallet} label="Revenue" />
         <StatTile icon={MessageSquareWarning} label="Complaints" />
       </div>

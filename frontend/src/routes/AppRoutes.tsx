@@ -11,6 +11,9 @@ import { ManageUsers } from '@/pages/admin/ManageUsers';
 import { ResidentsList } from '@/pages/residents/ResidentsList';
 import { ResidentForm } from '@/pages/residents/ResidentForm';
 import { ResidentDetail } from '@/pages/residents/ResidentDetail';
+import { RoomsList } from '@/pages/rooms/RoomsList';
+import { RoomForm } from '@/pages/rooms/RoomForm';
+import { RoomDetail } from '@/pages/rooms/RoomDetail';
 import { Unauthorized } from '@/pages/Unauthorized';
 import { NotFound } from '@/pages/NotFound';
 
@@ -36,6 +39,10 @@ export function AppRoutes() {
             <Route path="/residents/new" element={<ResidentForm mode="create" />} />
             <Route path="/residents/:id" element={<ResidentDetail />} />
             <Route path="/residents/:id/edit" element={<ResidentForm mode="edit" />} />
+            <Route path="/rooms" element={<RoomsList />} />
+            <Route path="/rooms/new" element={<RoomForm mode="create" />} />
+            <Route path="/rooms/:id" element={<RoomDetail />} />
+            <Route path="/rooms/:id/edit" element={<RoomForm mode="edit" />} />
           </Route>
         </Route>
       </Route>
