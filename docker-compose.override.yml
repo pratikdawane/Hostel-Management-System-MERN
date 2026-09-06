@@ -1,0 +1,56 @@
+# Dev overrides - Docker Compose auto-merges this file with docker-compose.yml
+# on a plain `docker compose up`, with NO -f flags needed. This makes
+# hot-reload dev the zero-effort default:
+#
+#   docker compose up --build
+#
+# To run the real production-style stack instead, you must explicitly bypass
+# this file:
+#
+#   docker compose -f docker-compose.yml up -d --build
+
+services:
+  mongo:
+    ports:
+      # Exposes Mongo on the host too, so you can point Compass/mongosh at
+      # localhost:27017 while developing.
+      - "27017:27017"
+
+  backend:
+    build:
+      # Reuse the intermediate "build" stage (still has devDependencies:
+      # tsx, typescript, eslint) instead of the slim "production" stage.
+      target: build
+    command: npm run dev -w backend
+    environment:
+      NODE_ENV: development
+      # The browser loads the frontend from Vite's dev server, not the
+      # nginx/8080 port used in the production compose file.
+      CLIENT_URL: http://localhost:5173
+    volumes:
+      # Bind-mount live source so edits hot-reload without a rebuild...
+      - ./backend:/app/backend
+      # ...but keep the container's OWN node_modules (installed for Linux)
+      # instead of letting the bind mount hide it with the host's copy.
+      - backend-node-modules:/app/backend/node_modules
+
+  frontend:
+    build:
+      target: build
+    # --host makes Vite's dev server reachable from outside the container.
+    command: sh -c "npm run dev -w frontend -- --host 0.0.0.0"
+    ports:
+      - "5173:5173"
+      # Note: Compose concatenates port lists across files, so the base
+      # file's "8080:80" mapping is still technically published here too,
+      # but nothing listens on port 80 in dev (nginx isn't running) - it's
+      # inert. Use 5173 in dev, 8080 only for the production-style stack.
+    volumes:
+      - ./frontend:/app/frontend
+      - frontend-node-modules:/app/frontend/node_modules
+    # depends_on: backend is already set in docker-compose.yml - Compose
+    # merges it in, no need to restate it here.
+
+volumes:
+  backend-node-modules:
+  frontend-node-modules:

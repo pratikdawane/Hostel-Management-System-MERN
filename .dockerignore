@@ -1,0 +1,38 @@
+# Docker build context is the repo root (see backend/Dockerfile and
+# frontend/Dockerfile) - this is the ONLY .dockerignore that Docker reads.
+# A backend/.dockerignore or frontend/.dockerignore would be silently
+# ignored, so do not add them - keep everything here instead.
+
+# dependencies & build output (reinstalled/rebuilt inside the image)
+**/node_modules
+**/dist
+**/dist-ssr
+**/coverage
+
+# vcs / editor / os
+.git
+.gitignore
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# secrets - never bake these into an image layer
+**/.env
+**/.env.local
+**/.env.*.local
+!**/.env.example
+!.env.docker.example
+
+# caches
+**/*.tsbuildinfo
+**/.eslintcache
+**/*.log
+
+# not needed inside images
+docs
+*.md
+!README.md
+
+# claude / editor tooling
+.claude

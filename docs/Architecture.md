@@ -588,10 +588,20 @@ Centralized error handler — production responses never include a stack trace
 
 ## 8. Deployment Architecture
 
-**Nothing is deployed yet — this is local-development only today** (no Dockerfile, no CI/CD
-pipeline, and no hosting configured exist in this repository as of this writing). The section
-below is a recommendation for when that becomes necessary, matched to this project's actual
-scale — not a description of an existing setup.
+> **Update — Docker added for local dev, plus an optional Compose-based deploy.** Docker +
+> Docker Compose have since been added (see
+> [`docs/specs/DEPLOYMENT-DOCKER.md`](./specs/DEPLOYMENT-DOCKER.md)), primarily so
+> `docker compose up` brings up the frontend, backend, and MongoDB together for local
+> development parity. A GitHub Actions workflow (`.github/workflows/deploy.yml`) can also
+> SSH into a pre-provisioned server and run the production-style Compose stack there — see
+> that spec's "CI/CD deploy" section. This is a lighter-weight alternative to the
+> recommendation below, not a replacement for it: the static-hosting + single Node process +
+> MongoDB Atlas path is still the better fit if/when this needs to scale past a single VM.
+
+**Nothing is deployed yet — no hosting is configured for this repository as of this
+writing**, though a CI/CD deploy workflow now exists and is ready to point at a server once
+one is provisioned (see above). The section below is a recommendation for a larger-scale
+setup, matched to this project's actual scale — not a description of an existing setup.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
