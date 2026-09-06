@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   Building2,
@@ -53,6 +53,7 @@ export function DashboardLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   if (!user) return null;
 
@@ -62,6 +63,18 @@ export function DashboardLayout() {
       navigate('/login', { replace: true });
     } catch (error) {
       toast.error(getErrorMessage(error, 'Failed to log out'));
+    }
+  };
+
+  const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const term = searchTerm.trim();
+    if (!term) return;
+
+    if (user.role === 'admin') {
+      navigate(`/admin/users?search=${encodeURIComponent(term)}`);
+    } else if (user.role === 'manager') {
+      navigate(`/residents?q=${encodeURIComponent(term)}`);
     }
   };
 
@@ -157,19 +170,26 @@ export function DashboardLayout() {
             <Menu className="h-5 w-5" strokeWidth={1.8} />
           </button>
 
-          <label
-            className={cn(
-              'hidden h-11 w-full max-w-sm items-center gap-2.5 rounded-full px-4 text-gray-500 sm:flex',
-              NEU_PRESSED,
-            )}
-          >
-            <Search className="h-4.5 w-4.5 flex-shrink-0" strokeWidth={1.8} />
-            <input
-              type="search"
-              placeholder="Search..."
-              className="h-full w-full bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
-            />
-          </label>
+          {(user.role === 'admin' || user.role === 'manager') && (
+            <form
+              onSubmit={handleSearchSubmit}
+              className={cn(
+                'hidden h-11 w-full max-w-sm items-center gap-2.5 rounded-full px-4 text-gray-500 sm:flex',
+                NEU_PRESSED,
+              )}
+            >
+              <Search className="h-4.5 w-4.5 flex-shrink-0" strokeWidth={1.8} />
+              <input
+                type="search"
+                placeholder={
+                  user.role === 'admin' ? 'Search users...' : 'Search residents...'
+                }
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                className="h-full w-full bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+              />
+            </form>
+          )}
 
           <div className="ml-auto flex items-center gap-3">
             <div className="hidden text-right sm:block">

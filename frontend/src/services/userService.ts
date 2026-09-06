@@ -4,6 +4,7 @@ import type { CreateUserInput, PaginatedUsers, Role, User } from '@/types/auth';
 
 export interface ListUsersParams {
   role?: Role;
+  q?: string;
   page?: number;
   limit?: number;
 }

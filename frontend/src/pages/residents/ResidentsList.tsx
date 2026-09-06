@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Eye, Pencil, Plus, Search, Trash2, Users as UsersIcon } from 'lucide-react';
 import * as residentService from '@/services/residentService';
@@ -20,17 +20,25 @@ const PAGE_SIZE = 10;
 
 export function ResidentsList() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [residents, setResidents] = useState<Resident[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState<ResidentStatus | ''>('');
-  const [searchInput, setSearchInput] = useState('');
-  const [query, setQuery] = useState('');
+  const [searchInput, setSearchInput] = useState(searchParams.get('q') ?? '');
+  const [query, setQuery] = useState(searchParams.get('q')?.trim() ?? '');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Resident | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    const paramQuery = searchParams.get('q') ?? '';
+    setSearchInput(paramQuery);
+    setQuery(paramQuery.trim());
+    setPage(1);
+  }, [searchParams]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
