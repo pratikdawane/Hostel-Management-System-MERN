@@ -12,6 +12,7 @@ export const createUserSchema = z.object({
 
 export const listUsersQuerySchema = z.object({
   role: z.enum(ROLES).optional(),
+  q: z.string().trim().min(1).max(100).optional(),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
 });

@@ -1,5 +1,6 @@
 import { User, type UserDocument } from '../models/user.model.js';
 import { ApiError } from '../utils/ApiError.js';
+import { escapeRegex } from '../utils/regex.js';
 import type { CreateUserInput, ListUsersQuery } from '../validators/user.validator.js';
 
 export async function createUser(
@@ -30,7 +31,14 @@ export interface PaginatedUsers {
 }
 
 export async function listUsers(query: ListUsersQuery): Promise<PaginatedUsers> {
-  const filter = query.role ? { role: query.role } : {};
+  const filter: Record<string, unknown> = {};
+  if (query.role) {
+    filter.role = query.role;
+  }
+  if (query.q) {
+    const pattern = new RegExp(escapeRegex(query.q), 'i');
+    filter.$or = [{ name: pattern }, { email: pattern }];
+  }
   const skip = (query.page - 1) * query.limit;
 
   const [users, total] = await Promise.all([
