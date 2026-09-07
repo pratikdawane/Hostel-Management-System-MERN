@@ -42,12 +42,10 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Residents', to: '/residents', icon: UserRound, roles: ['admin', 'manager'] },
   { label: 'Rooms & Beds', to: '/rooms', icon: BedDouble, roles: ['admin', 'manager'] },
   { label: 'Allocations', to: '/allocations', icon: ClipboardList, roles: ['admin', 'manager'] },
+  { label: 'Rent & Payments', to: '/payments', icon: Wallet, roles: ['admin', 'manager'] },
 ];
 
-const UPCOMING_MODULES = [
-  { label: 'Rent & Payments', icon: Wallet },
-  { label: 'Complaints', icon: MessageSquareWarning },
-];
+const UPCOMING_MODULES = [{ label: 'Complaints', icon: MessageSquareWarning }];
 
 export function DashboardLayout() {
   const { user, logout } = useAuth();
