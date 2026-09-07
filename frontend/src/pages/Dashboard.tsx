@@ -4,8 +4,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { ROLE_LABELS } from '@/types/auth';
 import type { ResidentStats } from '@/types/resident';
 import type { RoomStats } from '@/types/room';
+import type { PaymentStats } from '@/types/payment';
 import * as residentService from '@/services/residentService';
 import * as roomService from '@/services/roomService';
+import * as paymentService from '@/services/paymentService';
 import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/lib/cn';
 import { NEU_RAISED } from '@/styles/neumorphism';
@@ -20,6 +22,7 @@ interface StatTileProps {
   value?: number;
   isLoading?: boolean;
   placeholderLabel?: string;
+  formatValue?: (value: number) => string;
 }
 
 /** Stat card: shows a real, live number once its data source is available and reachable by
@@ -32,6 +35,7 @@ function StatTile({
   value,
   isLoading = false,
   placeholderLabel = 'Soon',
+  formatValue,
 }: StatTileProps) {
   const hasValue = value !== undefined;
 
@@ -78,7 +82,7 @@ function StatTile({
             )}
             aria-label={hasValue ? undefined : 'Not tracked yet'}
           >
-            {hasValue ? value : '—'}
+            {value !== undefined ? (formatValue ? formatValue(value) : value) : '—'}
           </p>
         )}
         <p className={cn('mt-0.5 text-xs font-medium', accent ? 'text-white/70' : 'text-gray-500')}>
@@ -95,8 +99,11 @@ export function Dashboard() {
   const [isStatsLoading, setIsStatsLoading] = useState(false);
   const [roomStats, setRoomStats] = useState<RoomStats | null>(null);
   const [isRoomStatsLoading, setIsRoomStatsLoading] = useState(false);
+  const [paymentStats, setPaymentStats] = useState<PaymentStats | null>(null);
+  const [isPaymentStatsLoading, setIsPaymentStatsLoading] = useState(false);
   const canViewResidents = user?.role === 'admin' || user?.role === 'manager';
   const canViewRooms = user?.role === 'admin' || user?.role === 'manager';
+  const canViewRevenue = user?.role === 'admin';
 
   useEffect(() => {
     if (!canViewResidents) return;
@@ -143,6 +150,29 @@ export function Dashboard() {
       cancelled = true;
     };
   }, [canViewRooms]);
+
+  useEffect(() => {
+    if (!canViewRevenue) return;
+
+    let cancelled = false;
+    setIsPaymentStatsLoading(true);
+
+    paymentService
+      .getPaymentStats()
+      .then((stats) => {
+        if (!cancelled) setPaymentStats(stats);
+      })
+      .catch(() => {
+        // Leave paymentStats null — the tile falls back to an honest "Unavailable" placeholder.
+      })
+      .finally(() => {
+        if (!cancelled) setIsPaymentStatsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canViewRevenue]);
 
   if (!user) return null;
 
@@ -195,14 +225,21 @@ export function Dashboard() {
           isLoading={canViewRooms && isRoomStatsLoading}
           placeholderLabel={canViewRooms ? 'Unavailable' : 'Staff only'}
         />
-        <StatTile icon={Wallet} label="Revenue" />
+        <StatTile
+          icon={Wallet}
+          label="Monthly revenue"
+          value={canViewRevenue ? paymentStats?.monthlyRevenue : undefined}
+          isLoading={canViewRevenue && isPaymentStatsLoading}
+          placeholderLabel={canViewRevenue ? 'Unavailable' : 'Staff only'}
+          formatValue={(value) => `₹${value.toLocaleString('en-IN')}`}
+        />
         <StatTile icon={MessageSquareWarning} label="Complaints" />
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-5 lg:grid-cols-3">
         {user.role === 'admin' && (
           <div className="lg:col-span-2">
-            <RevenueChart />
+            <RevenueChart data={paymentStats?.monthlyTrend ?? null} isLoading={isPaymentStatsLoading} />
           </div>
         )}
 

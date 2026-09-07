@@ -5,6 +5,7 @@ import residentRoutes from './resident.routes.js';
 import roomRoutes from './room.routes.js';
 import bedRoutes from './bed.routes.js';
 import allocationRoutes from './allocation.routes.js';
+import paymentRoutes from './payment.routes.js';
 
 const router = Router();
 
@@ -14,5 +15,6 @@ router.use('/residents', residentRoutes);
 router.use('/rooms', roomRoutes);
 router.use('/beds', bedRoutes);
 router.use('/allocations', allocationRoutes);
+router.use('/payments', paymentRoutes);
 
 export default router;

@@ -16,6 +16,8 @@ import { RoomForm } from '@/pages/rooms/RoomForm';
 import { RoomDetail } from '@/pages/rooms/RoomDetail';
 import { AllocationsList } from '@/pages/allocations/AllocationsList';
 import { AllocationForm } from '@/pages/allocations/AllocationForm';
+import { PaymentsList } from '@/pages/payments/PaymentsList';
+import { PaymentForm } from '@/pages/payments/PaymentForm';
 import { Unauthorized } from '@/pages/Unauthorized';
 import { NotFound } from '@/pages/NotFound';
 
@@ -47,6 +49,8 @@ export function AppRoutes() {
             <Route path="/rooms/:id/edit" element={<RoomForm mode="edit" />} />
             <Route path="/allocations" element={<AllocationsList />} />
             <Route path="/allocations/new" element={<AllocationForm />} />
+            <Route path="/payments" element={<PaymentsList />} />
+            <Route path="/payments/new" element={<PaymentForm />} />
           </Route>
         </Route>
       </Route>

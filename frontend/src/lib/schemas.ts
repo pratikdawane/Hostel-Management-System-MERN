@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { MAX_ROOM_CAPACITY } from '@/types/room';
+import { PAYMENT_METHODS, PAYMENT_STATUSES, PAYMENT_TYPES } from '@/types/payment';
 
 const emailSchema = z.string().trim().toLowerCase().pipe(z.email('Enter a valid email address'));
 
@@ -133,3 +134,23 @@ export const allocationSchema = z
     },
   );
 export type AllocationFormValues = z.infer<typeof allocationSchema>;
+
+export const paymentSchema = z
+  .object({
+    amount: z.number('Amount is required').positive('Amount must be greater than zero'),
+    paymentDate: z.string().min(1, 'Payment date is required'),
+    method: z.enum(PAYMENT_METHODS),
+    type: z.enum(PAYMENT_TYPES),
+    status: z.enum(PAYMENT_STATUSES),
+    transactionId: z.string().trim().max(100).optional().or(z.literal('')),
+    notes: z.string().trim().max(500).optional().or(z.literal('')),
+  })
+  .refine((data) => data.paymentDate <= todayIsoDate(), {
+    message: 'Payment date cannot be in the future',
+    path: ['paymentDate'],
+  });
+export type PaymentFormValues = z.infer<typeof paymentSchema>;
+
+function todayIsoDate(): string {
+  return new Date().toISOString().slice(0, 10);
+}
