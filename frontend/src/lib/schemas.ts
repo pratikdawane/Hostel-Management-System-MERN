@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { MAX_ROOM_CAPACITY } from '@/types/room';
 import { PAYMENT_METHODS, PAYMENT_STATUSES, PAYMENT_TYPES } from '@/types/payment';
+import { COMPLAINT_CATEGORIES, COMPLAINT_PRIORITIES } from '@/types/complaint';
 
 const emailSchema = z.string().trim().toLowerCase().pipe(z.email('Enter a valid email address'));
 
@@ -150,6 +151,18 @@ export const paymentSchema = z
     path: ['paymentDate'],
   });
 export type PaymentFormValues = z.infer<typeof paymentSchema>;
+
+export const complaintSchema = z.object({
+  title: z.string().trim().min(3, 'Title must be at least 3 characters').max(150, 'Title is too long'),
+  description: z
+    .string()
+    .trim()
+    .min(10, 'Description must be at least 10 characters')
+    .max(2000, 'Description is too long'),
+  category: z.enum(COMPLAINT_CATEGORIES),
+  priority: z.enum(COMPLAINT_PRIORITIES),
+});
+export type ComplaintFormValues = z.infer<typeof complaintSchema>;
 
 function todayIsoDate(): string {
   return new Date().toISOString().slice(0, 10);
