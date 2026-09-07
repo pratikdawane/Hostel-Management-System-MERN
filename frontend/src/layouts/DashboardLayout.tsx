@@ -43,9 +43,15 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Rooms & Beds', to: '/rooms', icon: BedDouble, roles: ['admin', 'manager'] },
   { label: 'Allocations', to: '/allocations', icon: ClipboardList, roles: ['admin', 'manager'] },
   { label: 'Rent & Payments', to: '/payments', icon: Wallet, roles: ['admin', 'manager'] },
+  {
+    label: 'Complaints',
+    to: '/complaints',
+    icon: MessageSquareWarning,
+    roles: ['admin', 'manager', 'resident'],
+  },
 ];
 
-const UPCOMING_MODULES = [{ label: 'Complaints', icon: MessageSquareWarning }];
+const UPCOMING_MODULES: { label: string; icon: typeof LayoutDashboard }[] = [];
 
 export function DashboardLayout() {
   const { user, logout } = useAuth();
@@ -135,21 +141,25 @@ export function DashboardLayout() {
             </NavLink>
           ))}
 
-          <p className="mb-1 mt-5 px-4 text-xs font-semibold uppercase tracking-wide text-gray-400">
-            Coming soon
-          </p>
-          {UPCOMING_MODULES.map((item) => (
-            <div
-              key={item.label}
-              className="flex cursor-not-allowed items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-gray-400"
-            >
-              <item.icon className="h-4.5 w-4.5" strokeWidth={1.8} />
-              {item.label}
-              <Badge variant="neutral" className="ml-auto">
-                Soon
-              </Badge>
-            </div>
-          ))}
+          {UPCOMING_MODULES.length > 0 && (
+            <>
+              <p className="mb-1 mt-5 px-4 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                Coming soon
+              </p>
+              {UPCOMING_MODULES.map((item) => (
+                <div
+                  key={item.label}
+                  className="flex cursor-not-allowed items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-gray-400"
+                >
+                  <item.icon className="h-4.5 w-4.5" strokeWidth={1.8} />
+                  {item.label}
+                  <Badge variant="neutral" className="ml-auto">
+                    Soon
+                  </Badge>
+                </div>
+              ))}
+            </>
+          )}
         </nav>
       </aside>
 

@@ -18,6 +18,9 @@ import { AllocationsList } from '@/pages/allocations/AllocationsList';
 import { AllocationForm } from '@/pages/allocations/AllocationForm';
 import { PaymentsList } from '@/pages/payments/PaymentsList';
 import { PaymentForm } from '@/pages/payments/PaymentForm';
+import { ComplaintsList } from '@/pages/complaints/ComplaintsList';
+import { ComplaintForm } from '@/pages/complaints/ComplaintForm';
+import { ComplaintDetail } from '@/pages/complaints/ComplaintDetail';
 import { Unauthorized } from '@/pages/Unauthorized';
 import { NotFound } from '@/pages/NotFound';
 
@@ -51,6 +54,12 @@ export function AppRoutes() {
             <Route path="/allocations/new" element={<AllocationForm />} />
             <Route path="/payments" element={<PaymentsList />} />
             <Route path="/payments/new" element={<PaymentForm />} />
+          </Route>
+
+          <Route element={<RoleGuard allow={['admin', 'manager', 'resident']} />}>
+            <Route path="/complaints" element={<ComplaintsList />} />
+            <Route path="/complaints/new" element={<ComplaintForm />} />
+            <Route path="/complaints/:id" element={<ComplaintDetail />} />
           </Route>
         </Route>
       </Route>

@@ -5,9 +5,11 @@ import { ROLE_LABELS } from '@/types/auth';
 import type { ResidentStats } from '@/types/resident';
 import type { RoomStats } from '@/types/room';
 import type { PaymentStats } from '@/types/payment';
+import type { ComplaintStats } from '@/types/complaint';
 import * as residentService from '@/services/residentService';
 import * as roomService from '@/services/roomService';
 import * as paymentService from '@/services/paymentService';
+import * as complaintService from '@/services/complaintService';
 import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/lib/cn';
 import { NEU_RAISED } from '@/styles/neumorphism';
@@ -101,6 +103,8 @@ export function Dashboard() {
   const [isRoomStatsLoading, setIsRoomStatsLoading] = useState(false);
   const [paymentStats, setPaymentStats] = useState<PaymentStats | null>(null);
   const [isPaymentStatsLoading, setIsPaymentStatsLoading] = useState(false);
+  const [complaintStats, setComplaintStats] = useState<ComplaintStats | null>(null);
+  const [isComplaintStatsLoading, setIsComplaintStatsLoading] = useState(false);
   const canViewResidents = user?.role === 'admin' || user?.role === 'manager';
   const canViewRooms = user?.role === 'admin' || user?.role === 'manager';
   const canViewRevenue = user?.role === 'admin';
@@ -174,6 +178,27 @@ export function Dashboard() {
     };
   }, [canViewRevenue]);
 
+  useEffect(() => {
+    let cancelled = false;
+    setIsComplaintStatsLoading(true);
+
+    complaintService
+      .getComplaintStats()
+      .then((stats) => {
+        if (!cancelled) setComplaintStats(stats);
+      })
+      .catch(() => {
+        // Leave complaintStats null — the tile falls back to an honest "Unavailable" placeholder.
+      })
+      .finally(() => {
+        if (!cancelled) setIsComplaintStatsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   if (!user) return null;
 
   return (
@@ -233,7 +258,13 @@ export function Dashboard() {
           placeholderLabel={canViewRevenue ? 'Unavailable' : 'Staff only'}
           formatValue={(value) => `₹${value.toLocaleString('en-IN')}`}
         />
-        <StatTile icon={MessageSquareWarning} label="Complaints" />
+        <StatTile
+          icon={MessageSquareWarning}
+          label="Pending complaints"
+          value={complaintStats?.pending}
+          isLoading={isComplaintStatsLoading}
+          placeholderLabel="Unavailable"
+        />
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-5 lg:grid-cols-3">
