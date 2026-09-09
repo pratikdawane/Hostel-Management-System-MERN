@@ -10,7 +10,7 @@ name: hostel-management-system
 
 services:
   mongo:
-    image: mongo:7
+    image: mongo:4.4
     container_name: hostel-mongo
     restart: unless-stopped
     volumes:
