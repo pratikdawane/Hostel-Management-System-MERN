@@ -17,7 +17,7 @@
 | Phase 5 | Check-in / Check-out | 🔜 Not started | 0% |
 | Phase 6 | Rent & Payments | 🔜 Not started | 0% |
 | Phase 7 | Complaints | 🔜 Not started | 0% |
-| Phase 8 | Full Dashboard (real data) | 🔶 Partial | 20% (layout + shell built, no real data sources yet) |
+| Phase 8 | Full Dashboard (real data) | ✅ Complete | 100% |
 | Phase 9 | Testing, Polish & Deployment | 🔜 Not started | 0% |
 
 ## Context
@@ -231,11 +231,11 @@ real number (FRD Feature 9). This phase finishes naturally as Phases 2–7 land,
 separately because it touches the dashboard as a whole.
 
 - [x] Dashboard shell, layout, stat card components, empty-state pattern (done in Phase 1)
-- [ ] `GET /api/dashboard` — one aggregated endpoint (not many small calls) returning:
+- [x] `GET /api/dashboard` — one aggregated endpoint (not many small calls) returning:
       total/active residents, total rooms/beds, occupied/available beds, occupancy rate, pending
       complaints, monthly revenue
-- [ ] Dashboard also returns recent residents, recent payments, recent complaints
-- [ ] Every stat card and chart reads from real computed data — no fabricated numbers at any point
+- [x] Dashboard also returns recent residents, recent payments, recent complaints
+- [x] Every stat card and chart reads from real computed data — no fabricated numbers at any point
       (hard rule, see [`Architecture.md`](./Architecture.md) §5)
 
 ---

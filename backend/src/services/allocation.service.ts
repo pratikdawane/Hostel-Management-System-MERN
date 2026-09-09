@@ -249,3 +249,21 @@ export async function checkoutAllocation(
     await session.endSession();
   }
 }
+
+/**
+ * Permanently removes a CANCELLED or COMPLETED allocation record.
+ * ACTIVE allocations are blocked — deleting one would leave the bed OCCUPIED and the
+ * resident ACTIVE with no tracking record, putting the DB in an inconsistent state.
+ */
+export async function deleteAllocation(id: string): Promise<void> {
+  const allocation = await RoomAllocation.findById(id);
+  if (!allocation) {
+    throw ApiError.notFound('Allocation not found');
+  }
+  if (allocation.status === 'ACTIVE') {
+    throw ApiError.conflict(
+      'An active allocation cannot be deleted. Cancel or check out the resident first.',
+    );
+  }
+  await RoomAllocation.findByIdAndDelete(id);
+}

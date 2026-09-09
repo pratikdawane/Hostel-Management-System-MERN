@@ -40,3 +40,7 @@ export async function checkoutAllocation(id: string): Promise<Allocation> {
   );
   return data.data.allocation;
 }
+
+export async function deleteAllocation(id: string): Promise<void> {
+  await api.delete(`/allocations/${id}`);
+}

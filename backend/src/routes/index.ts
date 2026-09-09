@@ -7,6 +7,7 @@ import bedRoutes from './bed.routes.js';
 import allocationRoutes from './allocation.routes.js';
 import paymentRoutes from './payment.routes.js';
 import complaintRoutes from './complaint.routes.js';
+import dashboardRoutes from './dashboard.routes.js';
 
 const router = Router();
 
@@ -18,5 +19,6 @@ router.use('/beds', bedRoutes);
 router.use('/allocations', allocationRoutes);
 router.use('/payments', paymentRoutes);
 router.use('/complaints', complaintRoutes);
+router.use('/dashboard', dashboardRoutes);
 
 export default router;

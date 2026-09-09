@@ -29,5 +29,10 @@ router.post(
   validate(allocationIdParamSchema, 'params'),
   allocationController.checkoutAllocation,
 );
+router.delete(
+  '/:id',
+  validate(allocationIdParamSchema, 'params'),
+  allocationController.deleteAllocation,
+);
 
 export default router;
