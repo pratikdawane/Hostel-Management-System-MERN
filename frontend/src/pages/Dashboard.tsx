@@ -2,20 +2,21 @@ import { useEffect, useState } from 'react';
 import { Users, UserCheck, Building2, BedDouble, Wallet, MessageSquareWarning } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { ROLE_LABELS } from '@/types/auth';
-import type { ResidentStats } from '@/types/resident';
-import type { RoomStats } from '@/types/room';
-import type { PaymentStats } from '@/types/payment';
-import type { ComplaintStats } from '@/types/complaint';
-import * as residentService from '@/services/residentService';
-import * as roomService from '@/services/roomService';
-import * as paymentService from '@/services/paymentService';
-import * as complaintService from '@/services/complaintService';
+import { RESIDENT_STATUS_LABELS } from '@/types/resident';
+import { PAYMENT_STATUS_LABELS } from '@/types/payment';
+import { COMPLAINT_STATUS_LABELS, COMPLAINT_PRIORITY_LABELS } from '@/types/complaint';
+import type { DashboardSummary } from '@/types/dashboard';
+import * as dashboardService from '@/services/dashboardService';
+import { statusBadgeVariant } from '@/utils/resident';
+import { paymentStatusBadgeVariant } from '@/utils/payment';
+import { complaintStatusBadgeVariant, complaintPriorityBadgeVariant } from '@/utils/complaint';
 import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/lib/cn';
 import { NEU_RAISED } from '@/styles/neumorphism';
 import { MiniCalendar } from '@/components/dashboard/MiniCalendar';
 import { RevenueChart } from '@/components/dashboard/RevenueChart';
 import { OccupancyChart } from '@/components/dashboard/OccupancyChart';
+import { RecentListCard } from '@/components/dashboard/RecentListCard';
 
 interface StatTileProps {
   icon: typeof Users;
@@ -97,107 +98,41 @@ function StatTile({
 
 export function Dashboard() {
   const { user } = useAuth();
-  const [residentStats, setResidentStats] = useState<ResidentStats | null>(null);
-  const [isStatsLoading, setIsStatsLoading] = useState(false);
-  const [roomStats, setRoomStats] = useState<RoomStats | null>(null);
-  const [isRoomStatsLoading, setIsRoomStatsLoading] = useState(false);
-  const [paymentStats, setPaymentStats] = useState<PaymentStats | null>(null);
-  const [isPaymentStatsLoading, setIsPaymentStatsLoading] = useState(false);
-  const [complaintStats, setComplaintStats] = useState<ComplaintStats | null>(null);
-  const [isComplaintStatsLoading, setIsComplaintStatsLoading] = useState(false);
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const canViewResidents = user?.role === 'admin' || user?.role === 'manager';
   const canViewRooms = user?.role === 'admin' || user?.role === 'manager';
   const canViewRevenue = user?.role === 'admin';
 
+  const residentStats = summary?.residents ?? null;
+  const roomStats = summary?.rooms ?? null;
+  const paymentStats = summary?.payments ?? null;
+  const complaintStats = summary?.complaints ?? null;
+
+  // One aggregated GET /api/dashboard call powers every stat tile, chart, and recent-activity
+  // panel below — not several small requests.
   useEffect(() => {
-    if (!canViewResidents) return;
+    if (!user) return;
 
     let cancelled = false;
-    setIsStatsLoading(true);
+    setIsLoading(true);
 
-    residentService
-      .getResidentStats()
-      .then((stats) => {
-        if (!cancelled) setResidentStats(stats);
+    dashboardService
+      .getDashboard()
+      .then((data) => {
+        if (!cancelled) setSummary(data);
       })
       .catch(() => {
-        // Leave residentStats null — the tile falls back to an honest "Unavailable" placeholder.
+        // Leave summary null — every tile/chart/panel falls back to an honest placeholder.
       })
       .finally(() => {
-        if (!cancelled) setIsStatsLoading(false);
+        if (!cancelled) setIsLoading(false);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [canViewResidents]);
-
-  useEffect(() => {
-    if (!canViewRooms) return;
-
-    let cancelled = false;
-    setIsRoomStatsLoading(true);
-
-    roomService
-      .getRoomStats()
-      .then((stats) => {
-        if (!cancelled) setRoomStats(stats);
-      })
-      .catch(() => {
-        // Leave roomStats null — the tiles fall back to an honest "Unavailable" placeholder.
-      })
-      .finally(() => {
-        if (!cancelled) setIsRoomStatsLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [canViewRooms]);
-
-  useEffect(() => {
-    if (!canViewRevenue) return;
-
-    let cancelled = false;
-    setIsPaymentStatsLoading(true);
-
-    paymentService
-      .getPaymentStats()
-      .then((stats) => {
-        if (!cancelled) setPaymentStats(stats);
-      })
-      .catch(() => {
-        // Leave paymentStats null — the tile falls back to an honest "Unavailable" placeholder.
-      })
-      .finally(() => {
-        if (!cancelled) setIsPaymentStatsLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [canViewRevenue]);
-
-  useEffect(() => {
-    let cancelled = false;
-    setIsComplaintStatsLoading(true);
-
-    complaintService
-      .getComplaintStats()
-      .then((stats) => {
-        if (!cancelled) setComplaintStats(stats);
-      })
-      .catch(() => {
-        // Leave complaintStats null — the tile falls back to an honest "Unavailable" placeholder.
-      })
-      .finally(() => {
-        if (!cancelled) setIsComplaintStatsLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  }, [user]);
 
   if (!user) return null;
 
@@ -219,42 +154,42 @@ export function Dashboard() {
           icon={Users}
           label="Total residents"
           value={canViewResidents ? residentStats?.total : undefined}
-          isLoading={canViewResidents && isStatsLoading}
+          isLoading={canViewResidents && isLoading}
           placeholderLabel={canViewResidents ? 'Unavailable' : 'Staff only'}
         />
         <StatTile
           icon={UserCheck}
           label="Active residents"
           value={canViewResidents ? residentStats?.active : undefined}
-          isLoading={canViewResidents && isStatsLoading}
+          isLoading={canViewResidents && isLoading}
           placeholderLabel={canViewResidents ? 'Unavailable' : 'Staff only'}
         />
         <StatTile
           icon={Building2}
           label="Total rooms"
           value={canViewRooms ? roomStats?.totalRooms : undefined}
-          isLoading={canViewRooms && isRoomStatsLoading}
+          isLoading={canViewRooms && isLoading}
           placeholderLabel={canViewRooms ? 'Unavailable' : 'Staff only'}
         />
         <StatTile
           icon={BedDouble}
           label="Total beds"
           value={canViewRooms ? roomStats?.totalBeds : undefined}
-          isLoading={canViewRooms && isRoomStatsLoading}
+          isLoading={canViewRooms && isLoading}
           placeholderLabel={canViewRooms ? 'Unavailable' : 'Staff only'}
         />
         <StatTile
           icon={BedDouble}
           label="Available beds"
           value={canViewRooms ? roomStats?.availableBeds : undefined}
-          isLoading={canViewRooms && isRoomStatsLoading}
+          isLoading={canViewRooms && isLoading}
           placeholderLabel={canViewRooms ? 'Unavailable' : 'Staff only'}
         />
         <StatTile
           icon={Wallet}
           label="Monthly revenue"
           value={canViewRevenue ? paymentStats?.monthlyRevenue : undefined}
-          isLoading={canViewRevenue && isPaymentStatsLoading}
+          isLoading={canViewRevenue && isLoading}
           placeholderLabel={canViewRevenue ? 'Unavailable' : 'Staff only'}
           formatValue={(value) => `₹${value.toLocaleString('en-IN')}`}
         />
@@ -262,7 +197,7 @@ export function Dashboard() {
           icon={MessageSquareWarning}
           label="Pending complaints"
           value={complaintStats?.pending}
-          isLoading={isComplaintStatsLoading}
+          isLoading={isLoading}
           placeholderLabel="Unavailable"
         />
       </div>
@@ -270,13 +205,13 @@ export function Dashboard() {
       <div className="mt-4 grid grid-cols-1 gap-5 lg:grid-cols-3">
         {user.role === 'admin' && (
           <div className="lg:col-span-2">
-            <RevenueChart data={paymentStats?.monthlyTrend ?? null} isLoading={isPaymentStatsLoading} />
+            <RevenueChart data={paymentStats?.monthlyTrend ?? null} isLoading={isLoading} />
           </div>
         )}
 
         {canViewRooms && (
           <div className={cn(user.role === 'admin' ? '' : 'lg:col-span-1')}>
-            <OccupancyChart stats={roomStats} isLoading={isRoomStatsLoading} />
+            <OccupancyChart stats={roomStats} isLoading={isLoading} />
           </div>
         )}
 
@@ -287,6 +222,96 @@ export function Dashboard() {
         >
           <MiniCalendar />
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        {canViewResidents && (
+          <RecentListCard
+            icon={Users}
+            title="Recent residents"
+            subtitle="Latest additions"
+            isLoading={isLoading}
+            items={summary?.recentResidents ?? null}
+            emptyTitle="No residents recorded yet"
+            emptySubtitle="New residents will show up here."
+            keyExtractor={(resident) => resident.id}
+            renderItem={(resident) => (
+              <div className="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 transition-colors duration-200 hover:bg-white/60">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-gray-900">{resident.name}</p>
+                  <p className="text-xs text-gray-500">
+                    {new Date(resident.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <Badge variant={statusBadgeVariant(resident.status)}>
+                  {RESIDENT_STATUS_LABELS[resident.status]}
+                </Badge>
+              </div>
+            )}
+          />
+        )}
+
+        {canViewRevenue && (
+          <RecentListCard
+            icon={Wallet}
+            title="Recent payments"
+            subtitle="Latest transactions"
+            isLoading={isLoading}
+            items={summary?.recentPayments ?? null}
+            emptyTitle="No payments recorded yet"
+            emptySubtitle="Recorded payments will show up here."
+            keyExtractor={(payment) => payment.id}
+            renderItem={(payment) => (
+              <div className="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 transition-colors duration-200 hover:bg-white/60">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-gray-900">
+                    {payment.resident?.name ?? 'Unknown resident'}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {new Date(payment.paymentDate).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <p className="text-sm font-semibold text-gray-900">
+                    ₹{payment.amount.toLocaleString('en-IN')}
+                  </p>
+                  <Badge variant={paymentStatusBadgeVariant(payment.status)}>
+                    {PAYMENT_STATUS_LABELS[payment.status]}
+                  </Badge>
+                </div>
+              </div>
+            )}
+          />
+        )}
+
+        <RecentListCard
+          icon={MessageSquareWarning}
+          title="Recent complaints"
+          subtitle={user.role === 'resident' ? 'Your latest complaints' : 'Latest filed'}
+          isLoading={isLoading}
+          items={summary?.recentComplaints ?? null}
+          emptyTitle="No complaints recorded yet"
+          emptySubtitle="Filed complaints will show up here."
+          keyExtractor={(complaint) => complaint.id}
+          renderItem={(complaint) => (
+            <div className="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 transition-colors duration-200 hover:bg-white/60">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-gray-900">{complaint.title}</p>
+                <p className="text-xs text-gray-500">
+                  {new Date(complaint.createdAt).toLocaleDateString()}
+                </p>
+              </div>
+              <div className="flex flex-col items-end gap-1">
+                <Badge variant={complaintPriorityBadgeVariant(complaint.priority)}>
+                  {COMPLAINT_PRIORITY_LABELS[complaint.priority]}
+                </Badge>
+                <Badge variant={complaintStatusBadgeVariant(complaint.status)}>
+                  {COMPLAINT_STATUS_LABELS[complaint.status]}
+                </Badge>
+              </div>
+            </div>
+          )}
+        />
       </div>
     </div>
   );

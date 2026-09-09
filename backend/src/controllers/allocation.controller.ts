@@ -40,3 +40,9 @@ export async function checkoutAllocation(req: Request, res: Response): Promise<v
     .status(200)
     .json(new ApiResponse(200, { allocation }, 'Resident checked out successfully'));
 }
+
+export async function deleteAllocation(req: Request, res: Response): Promise<void> {
+  const { id } = req.params as { id: string };
+  await allocationService.deleteAllocation(id);
+  res.status(204).send();
+}

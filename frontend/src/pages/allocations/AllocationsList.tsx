@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ClipboardList, LogOut, Plus, XCircle } from 'lucide-react';
+import { ClipboardList, LogOut, Plus, Trash2, XCircle } from 'lucide-react';
 import * as allocationService from '@/services/allocationService';
 import type { Allocation, AllocationStatus } from '@/types/allocation';
 import { ALLOCATION_STATUS_LABELS } from '@/types/allocation';
@@ -33,6 +33,8 @@ export function AllocationsList() {
   const [isCancelling, setIsCancelling] = useState(false);
   const [checkoutTarget, setCheckoutTarget] = useState<Allocation | null>(null);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Allocation | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchAllocations = useCallback(
     async (signal?: { cancelled: boolean }) => {
@@ -93,6 +95,21 @@ export function AllocationsList() {
       toast.error(getErrorMessage(err, 'Could not check out resident'));
     } finally {
       setIsCheckingOut(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      await allocationService.deleteAllocation(deleteTarget.id);
+      toast.success('Allocation deleted');
+      setDeleteTarget(null);
+      void fetchAllocations();
+    } catch (err) {
+      toast.error(getErrorMessage(err, 'Could not delete allocation'));
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -229,6 +246,18 @@ export function AllocationsList() {
                             </button>
                           </>
                         )}
+                        {(allocation.status === 'CANCELLED' ||
+                          allocation.status === 'COMPLETED') && (
+                          <button
+                            type="button"
+                            onClick={() => setDeleteTarget(allocation)}
+                            className="cursor-pointer rounded-md p-2 text-gray-400 transition-colors duration-150 hover:bg-red-50 hover:text-red-600"
+                            aria-label={`Delete allocation for ${allocation.resident?.name ?? 'resident'}`}
+                            title="Delete allocation"
+                          >
+                            <Trash2 className="h-4 w-4" strokeWidth={1.8} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -284,6 +313,16 @@ export function AllocationsList() {
         isLoading={isCheckingOut}
         onConfirm={() => void handleCheckout()}
         onCancel={() => setCheckoutTarget(null)}
+      />
+
+      <ConfirmDialog
+        isOpen={deleteTarget !== null}
+        title="Delete allocation"
+        description={`Permanently delete this allocation record for ${deleteTarget?.resident?.name ?? 'this resident'}? This action cannot be undone.`}
+        confirmLabel="Delete"
+        isLoading={isDeleting}
+        onConfirm={() => void handleDelete()}
+        onCancel={() => setDeleteTarget(null)}
       />
     </div>
   );
