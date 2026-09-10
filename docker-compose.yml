@@ -13,14 +13,19 @@ services:
     image: mongo:4.4
     container_name: hostel-mongo
     restart: unless-stopped
+    # Small footprint on purpose - this stack runs on a t2.micro (1 vCPU,
+    # ~1GB RAM) alongside the backend/frontend image builds, which contend
+    # for the same CPU. Capping the WiredTiger cache keeps mongod from
+    # grabbing a large default allocation while the builds are still running.
+    command: mongod --wiredTigerCacheSizeGB 0.25
     volumes:
       - hostel-mongo-data:/data/db
     healthcheck:
       test: ["CMD-SHELL", "mongo --eval \"db.adminCommand({ping:1})\" --quiet || mongosh --eval \"db.adminCommand({ping:1})\" --quiet"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 10s
+      retries: 10
+      start_period: 30s
     networks:
       - hostel-network
 
