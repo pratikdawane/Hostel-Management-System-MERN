@@ -85,7 +85,23 @@ export function ManageUsers() {
 
   const handleCopyId = async (id: string) => {
     try {
-      await navigator.clipboard.writeText(id);
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(id);
+      } else {
+        // navigator.clipboard is unavailable on insecure (non-HTTPS,
+        // non-localhost) origins - fall back to the legacy execCommand
+        // approach, which has no such restriction.
+        const textarea = document.createElement('textarea');
+        textarea.value = id;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        const succeeded = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        if (!succeeded) throw new Error('execCommand copy failed');
+      }
       setCopiedId(id);
       toast.success('User ID copied');
       setTimeout(() => setCopiedId((current) => (current === id ? null : current)), 1500);
