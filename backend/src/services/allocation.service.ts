@@ -1,9 +1,10 @@
-import mongoose, { type Types } from 'mongoose';
+import { type Types } from 'mongoose';
 import { RoomAllocation, type RoomAllocationDocument } from '../models/allocation.model.js';
 import { Resident, type IResident } from '../models/resident.model.js';
 import { Room, type IRoom } from '../models/room.model.js';
 import { Bed, type IBed } from '../models/bed.model.js';
 import { ApiError } from '../utils/ApiError.js';
+import { withOptionalTransaction } from '../utils/transaction.js';
 import { refreshRoomStatus } from './room.service.js';
 import type {
   CreateAllocationInput,
@@ -50,49 +51,59 @@ export async function createAllocation(
     throw ApiError.conflict('This room has reached its bed capacity.');
   }
 
-  const session = await mongoose.startSession();
-  try {
-    let allocation!: RoomAllocationDocument;
-    await session.withTransaction(async () => {
-      const bedUpdate = await Bed.updateOne(
-        { _id: bed._id, status: 'AVAILABLE' },
-        { $set: { status: 'OCCUPIED', residentId: resident._id } },
-        { session },
-      );
-      if (bedUpdate.matchedCount === 0) {
-        throw ApiError.conflict('Bed is already occupied.');
-      }
+  const allocation = await withOptionalTransaction(async (session) => {
+    const bedUpdate = await Bed.updateOne(
+      { _id: bed._id, status: 'AVAILABLE' },
+      { $set: { status: 'OCCUPIED', residentId: resident._id } },
+      session ? { session } : undefined,
+    );
+    if (bedUpdate.matchedCount === 0) {
+      throw ApiError.conflict('Bed is already occupied.');
+    }
 
-      const created = await RoomAllocation.create(
-        [
-          {
-            residentId: resident._id,
-            roomId: room._id,
-            bedId: bed._id,
-            checkInDate: input.checkInDate,
-            expectedCheckOutDate: input.expectedCheckOutDate,
-            monthlyRent: input.monthlyRent,
-            securityDeposit: input.securityDeposit,
-            status: 'ACTIVE',
-            createdBy,
-          },
-        ],
-        { session },
-      );
-      allocation = created[0]!;
+    let createdAlloc: RoomAllocationDocument | null = null;
+    try {
+      const allocationPayload = {
+        residentId: resident._id,
+        roomId: room._id,
+        bedId: bed._id,
+        checkInDate: input.checkInDate,
+        expectedCheckOutDate: input.expectedCheckOutDate,
+        monthlyRent: input.monthlyRent,
+        securityDeposit: input.securityDeposit,
+        status: 'ACTIVE' as const,
+        createdBy,
+      };
+
+      const created = session
+        ? await RoomAllocation.create([allocationPayload], { session })
+        : await RoomAllocation.create([allocationPayload]);
+      createdAlloc = created[0]!;
 
       await Resident.updateOne(
         { _id: resident._id },
         { $set: { status: 'ACTIVE' } },
-        { session },
+        session ? { session } : undefined,
       );
-    });
 
-    await refreshRoomStatus(String(room._id));
-    return allocation;
-  } finally {
-    await session.endSession();
-  }
+      return createdAlloc;
+    } catch (err) {
+      // If running without a transaction (standalone MongoDB), manually rollback changes.
+      if (!session) {
+        await Bed.updateOne(
+          { _id: bed._id },
+          { $set: { status: 'AVAILABLE' }, $unset: { residentId: 1 } },
+        ).catch(() => {});
+        if (createdAlloc) {
+          await RoomAllocation.findByIdAndDelete(createdAlloc._id).catch(() => {});
+        }
+      }
+      throw err;
+    }
+  });
+
+  await refreshRoomStatus(String(room._id));
+  return allocation;
 }
 
 export interface AllocationListItem {
@@ -209,45 +220,40 @@ export async function checkoutAllocation(
     throw ApiError.conflict('Only an active allocation can be checked out');
   }
 
-  const session = await mongoose.startSession();
-  try {
-    await session.withTransaction(async () => {
-      const allocationUpdate = await RoomAllocation.updateOne(
-        { _id: allocation._id, status: 'ACTIVE' },
-        {
-          $set: {
-            status: 'COMPLETED',
-            actualCheckOutDate: new Date(),
-            checkedOutBy,
-          },
+  await withOptionalTransaction(async (session) => {
+    const allocationUpdate = await RoomAllocation.updateOne(
+      { _id: allocation._id, status: 'ACTIVE' },
+      {
+        $set: {
+          status: 'COMPLETED',
+          actualCheckOutDate: new Date(),
+          checkedOutBy,
         },
-        { session },
-      );
-      if (allocationUpdate.matchedCount === 0) {
-        throw ApiError.conflict('Only an active allocation can be checked out');
-      }
+      },
+      session ? { session } : undefined,
+    );
+    if (allocationUpdate.matchedCount === 0) {
+      throw ApiError.conflict('Only an active allocation can be checked out');
+    }
 
-      const bedUpdate = await Bed.updateOne(
-        { _id: allocation.bedId, status: 'OCCUPIED' },
-        { $set: { status: 'AVAILABLE' }, $unset: { residentId: 1 } },
-        { session },
-      );
-      if (bedUpdate.matchedCount === 0) {
-        throw ApiError.conflict('Bed is not currently marked occupied');
-      }
+    const bedUpdate = await Bed.updateOne(
+      { _id: allocation.bedId, status: 'OCCUPIED' },
+      { $set: { status: 'AVAILABLE' }, $unset: { residentId: 1 } },
+      session ? { session } : undefined,
+    );
+    if (bedUpdate.matchedCount === 0) {
+      throw ApiError.conflict('Bed is not currently marked occupied');
+    }
 
-      await Resident.updateOne(
-        { _id: allocation.residentId },
-        { $set: { status: 'CHECKED_OUT' } },
-        { session },
-      );
-    });
+    await Resident.updateOne(
+      { _id: allocation.residentId },
+      { $set: { status: 'CHECKED_OUT' } },
+      session ? { session } : undefined,
+    );
+  });
 
-    await refreshRoomStatus(String(allocation.roomId));
-    return (await RoomAllocation.findById(id))!;
-  } finally {
-    await session.endSession();
-  }
+  await refreshRoomStatus(String(allocation.roomId));
+  return (await RoomAllocation.findById(id))!;
 }
 
 /**

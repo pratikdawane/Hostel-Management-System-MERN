@@ -1,4 +1,4 @@
-import mongoose, { type Types } from 'mongoose';
+import { type Types } from 'mongoose';
 import { Room, type RoomDocument } from '../models/room.model.js';
 import { Bed, type BedDocument } from '../models/bed.model.js';
 import type { IResident } from '../models/resident.model.js';
@@ -7,6 +7,8 @@ import { escapeRegex } from '../utils/regex.js';
 import { MAX_ROOM_CAPACITY, type RoomType, type RoomStatus } from '../constants/room.js';
 import type { CreateRoomInput, ListRoomsQuery, UpdateRoomInput } from '../validators/room.validator.js';
 import type { CreateBedInput } from '../validators/bed.validator.js';
+
+import { withOptionalTransaction } from '../utils/transaction.js';
 
 // Beds are labeled A, B, C, ... — capped at MAX_ROOM_CAPACITY (12) so this never needs a
 // fallback beyond the alphabet.
@@ -53,28 +55,34 @@ export async function createRoom(
 ): Promise<{ room: RoomDocument; beds: BedDocument[] }> {
   await assertRoomNumberAvailable(input.roomNumber);
 
-  const session = await mongoose.startSession();
-  try {
-    let room!: RoomDocument;
-    let beds!: BedDocument[];
-    await session.withTransaction(async () => {
-      const created = await Room.create([{ ...input, status: 'AVAILABLE', createdBy }], {
-        session,
-      });
-      room = created[0]!;
-      beds = await Bed.insertMany(
-        generateBedLabels(input.capacity).map((label) => ({
-          roomId: room._id,
-          label,
-          status: 'AVAILABLE',
-        })),
-        { session },
-      );
-    });
-    return { room, beds };
-  } finally {
-    await session.endSession();
-  }
+  return withOptionalTransaction(async (session) => {
+    let createdRoom: RoomDocument | null = null;
+    try {
+      const created = session
+        ? await Room.create([{ ...input, status: 'AVAILABLE', createdBy }], { session })
+        : await Room.create([{ ...input, status: 'AVAILABLE', createdBy }]);
+      createdRoom = created[0]!;
+
+      const bedPayloads = generateBedLabels(input.capacity).map((label) => ({
+        roomId: createdRoom!._id,
+        label,
+        status: 'AVAILABLE' as const,
+      }));
+
+      const beds = (session
+        ? await Bed.insertMany(bedPayloads, { session })
+        : await Bed.insertMany(bedPayloads)) as unknown as BedDocument[];
+
+      return { room: createdRoom, beds };
+    } catch (err) {
+      // If running without a transaction (standalone MongoDB) and room creation succeeded
+      // before bed insertion failed, clean up the orphaned room.
+      if (!session && createdRoom) {
+        await Room.findByIdAndDelete(createdRoom._id).catch(() => {});
+      }
+      throw err;
+    }
+  });
 }
 
 export interface BedCounts {
