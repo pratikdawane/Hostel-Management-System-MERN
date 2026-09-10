@@ -47,7 +47,7 @@ function StatTile({
       className={cn(
         'flex flex-col gap-4 rounded-3xl p-5 transition-transform duration-200 hover:-translate-y-1',
         NEU_RAISED,
-        accent ? 'bg-[#7fb502] text-white' : 'bg-[var(--color-neu-surface)] text-gray-900',
+        accent ? 'bg-primary-600 text-white' : 'bg-[var(--color-neu-surface)] text-gray-900',
       )}
     >
       <div className="flex items-center justify-between">
